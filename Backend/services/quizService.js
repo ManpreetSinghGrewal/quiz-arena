@@ -6,61 +6,40 @@ dotenv.config();
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
 
-const SCIENCE_SUBJECT_KEYWORDS = {
-  Physics: ["force", "motion", "energy", "velocity", "newton", "gravity", "light", "electric", "magnet", "wave"],
-  Chemistry: ["chemical", "element", "acid", "base", "molecule", "compound", "reaction", "periodic", "ion", "ph"],
-  Biology: ["cell", "dna", "gene", "organism", "plant", "animal", "human", "photosynthesis", "evolution", "blood"],
+const CS_SUBJECT_KEYWORDS = {
+  "Operating System": ["os", "kernel", "thread", "process", "memory", "linux", "windows", "unix", "boot"],
+  "Linux": ["linux", "unix", "bash", "shell", "command", "ubuntu", "kernel", "directory", "root"],
+  "Computer Networks": ["network", "ip", "tcp", "udp", "router", "switch", "protocol", "osi", "internet", "web"],
+  "Data Base Management System": ["database", "sql", "query", "table", "relation", "dbms", "nosql", "mysql"],
+  "Data Structures and Algorithms": ["algorithm", "sort", "search", "tree", "graph", "stack", "queue", "list", "array"],
+  "C and Pointers": ["pointer", "memory", "address", "malloc", "free", "array", "struct", "reference"]
 };
 
 const FALLBACK_QUESTIONS = {
-  Physics: [
-    {
-      question: "SI unit of force is?",
-      options: ["Newton", "Joule", "Pascal", "Watt"],
-      correctAnswer: 0,
-    },
-    {
-      question: "Speed of light in vacuum is closest to?",
-      options: ["3 x 10^8 m/s", "3 x 10^6 m/s", "3 x 10^5 km/s", "3 x 10^9 m/s"],
-      correctAnswer: 0,
-    },
+  "Operating System": [
+    { question: "What is the core of an operating system?", options: ["Kernel", "Shell", "GUI", "Command Prompt"], correctAnswer: 0 },
+    { question: "Which of the following is not an operating system?", options: ["Windows", "Linux", "Oracle", "macOS"], correctAnswer: 2 }
   ],
-  Chemistry: [
-    {
-      question: "pH of neutral water at room temperature is?",
-      options: ["7", "1", "14", "0"],
-      correctAnswer: 0,
-    },
-    {
-      question: "Atomic number of Oxygen is?",
-      options: ["8", "16", "6", "12"],
-      correctAnswer: 0,
-    },
+  "Linux": [
+    { question: "Which command is used to list files in Linux?", options: ["ls", "dir", "list", "show"], correctAnswer: 0 },
+    { question: "Who created Linux?", options: ["Linus Torvalds", "Bill Gates", "Steve Jobs", "Ken Thompson"], correctAnswer: 0 }
   ],
-  Biology: [
-    {
-      question: "Basic unit of life is?",
-      options: ["Cell", "Tissue", "Organ", "System"],
-      correctAnswer: 0,
-    },
-    {
-      question: "Photosynthesis mainly occurs in?",
-      options: ["Leaves", "Roots", "Stem", "Flowers"],
-      correctAnswer: 0,
-    },
+  "Computer Networks": [
+    { question: "What does IP stand for?", options: ["Internet Protocol", "Internal Protocol", "Internet Provider", "Internal Provider"], correctAnswer: 0 },
+    { question: "Which layer is not in the OSI model?", options: ["Application", "Transport", "Internet", "Physical"], correctAnswer: 2 }
   ],
-  Maths: [
-    {
-      question: "Value of pi is approximately?",
-      options: ["3.14", "2.14", "4.13", "1.34"],
-      correctAnswer: 0,
-    },
-    {
-      question: "If x + 5 = 12, x = ?",
-      options: ["7", "5", "12", "17"],
-      correctAnswer: 0,
-    },
+  "Data Base Management System": [
+    { question: "What does SQL stand for?", options: ["Structured Query Language", "Strong Question Language", "Structured Question Language", "Strong Query Language"], correctAnswer: 0 },
+    { question: "Which of the following is a NoSQL database?", options: ["MongoDB", "MySQL", "PostgreSQL", "Oracle"], correctAnswer: 0 }
   ],
+  "Data Structures and Algorithms": [
+    { question: "Which data structure uses LIFO?", options: ["Stack", "Queue", "Array", "Linked List"], correctAnswer: 0 },
+    { question: "What is the time complexity of binary search?", options: ["O(log n)", "O(n)", "O(n^2)", "O(1)"], correctAnswer: 0 }
+  ],
+  "C and Pointers": [
+    { question: "Which operator is used to get the address of a variable in C?", options: ["&", "*", "->", "."], correctAnswer: 0 },
+    { question: "What does a pointer hold?", options: ["Memory address", "Value", "Function", "Array"], correctAnswer: 0 }
+  ]
 };
 
 const shuffleArray = (array) => {
@@ -137,11 +116,11 @@ export const generateQuestions = async (subject = "Operating System", classLevel
     return geminiQuestions;
   }
 
-  // Fallback to OpenTDB
+  // Fallback to OpenTDB (Category 18 is Science: Computers)
   console.log(`Falling back to OpenTDB for ${subject} questions...`);
-  const category = subject === "Maths" ? 19 : 17;
-  const difficulty = classLevel === "12" ? "medium" : "easy";
-  const fetchAmount = subject === "Maths" ? nAmount : Math.min(nAmount * 4, 50);
+  const category = 18; 
+  const difficulty = "medium";
+  const fetchAmount = Math.min(nAmount * 4, 50);
 
   let remoteQuestions = [];
   try {
@@ -155,9 +134,9 @@ export const generateQuestions = async (subject = "Operating System", classLevel
     remoteQuestions = [];
   }
 
+  const keywords = CS_SUBJECT_KEYWORDS[subject] || [];
   let filtered = remoteQuestions;
-  if (subject !== "Maths") {
-    const keywords = SCIENCE_SUBJECT_KEYWORDS[subject] || [];
+  if (keywords.length > 0) {
     filtered = remoteQuestions.filter((item) => {
       const text = `${item.question} ${item.correct_answer} ${item.incorrect_answers.join(" ")}`.toLowerCase();
       return keywords.some((word) => text.includes(word));
@@ -181,7 +160,7 @@ export const generateQuestions = async (subject = "Operating System", classLevel
   if (normalizedRemote.length >= nAmount) return normalizedRemote;
 
   const needed = nAmount - normalizedRemote.length;
-  const localPool = FALLBACK_QUESTIONS[subject] || FALLBACK_QUESTIONS.Physics;
+  const localPool = FALLBACK_QUESTIONS[subject] || FALLBACK_QUESTIONS["Operating System"];
   const fallbackQuestions = Array.from({ length: needed }).map((_, idx) => {
     const item = localPool[idx % localPool.length];
     return {
