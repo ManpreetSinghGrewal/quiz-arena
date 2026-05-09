@@ -16,7 +16,7 @@ const quizModes = {
   battle: { title: "Battle Mode", icon: Swords, iconBg: "hsla(340, 85%, 60%, 0.1)", iconColor: "var(--game-battle)", timePerQuestion: 20 },
 };
 
-const SUBJECTS = ["Physics", "Chemistry", "Biology", "Maths"];
+const SUBJECTS = ["Operating System", "Linux", "Computer Networks", "Data Base Management System", "Data Structures and Algorithms", "C and Pointers"];
 
 const fetchQuestionsFromAPI = async ({ subject, classLevel, questionCount, topics = [] }) => {
   const apiBase = getApiBase();
@@ -68,7 +68,7 @@ const Quiz = () => {
   useEffect(() => {
     if (isMultiplayer && matchData) {
       setQuestions(matchData.questions || []);
-      setSelectedSubject(matchData.subject || "Physics");
+      setSelectedSubject(matchData.subject || "Operating System");
       setTimeLeft(matchData.timePerQuestion || 20);
       setHasStarted(true);
     } else if (mode === "battle" && !matchData) {
@@ -331,7 +331,7 @@ const Quiz = () => {
           <div className="card quiz-results-card glow-border">
             <div className="quiz-results-icon gradient-primary">🎉</div>
             <h1>Quiz Complete!</h1>
-            <p className="quiz-results-subtitle">Subject: {selectedSubject} | Class {classLevel}</p>
+            <p className="quiz-results-subtitle">Subject: {selectedSubject}</p>
             <div className="quiz-results-stats">
               <div className="quiz-results-stat">
                 <p className="quiz-results-stat-value">{score}</p>
@@ -371,23 +371,7 @@ const Quiz = () => {
           <h2 style={{ marginBottom: "1rem" }}>Quiz Setup</h2>
           <SubjectSelector subjects={SUBJECTS} selectedSubject={selectedSubject} onSelect={(s) => { setSelectedSubject(s); setSelectedTopics([]); }} />
           
-          <TopicSelector 
-            subject={selectedSubject} 
-            selectedTopics={selectedTopics} 
-            onToggleTopic={(topic) => {
-              setSelectedTopics(prev => 
-                prev.includes(topic) ? prev.filter(t => t !== topic) : [...prev, topic]
-              );
-            }} 
-          />
 
-          <div style={{ marginTop: "1rem" }}>
-            <p style={{ marginBottom: "0.75rem", fontWeight: 600, color: "var(--foreground)" }}>Choose Class</p>
-            <div style={{ display: "flex", gap: "0.5rem" }}>
-              <button type="button" className={`btn ${classLevel === "10" ? "btn-gradient" : "btn-outline"}`} onClick={() => setClassLevel("10")}>10th</button>
-              <button type="button" className={`btn ${classLevel === "12" ? "btn-gradient" : "btn-outline"}`} onClick={() => setClassLevel("12")}>12th</button>
-            </div>
-          </div>
           <div style={{ marginTop: "1rem" }}>
             <label className="label" htmlFor="questionCount">Number of Questions</label>
             <input
@@ -434,7 +418,7 @@ const Quiz = () => {
             </div>
             <div>
               <p className="quiz-mode-title">{quizConfig.title}</p>
-              <p className="quiz-mode-category">{selectedSubject} | Class {classLevel}</p>
+              <p className="quiz-mode-category">{selectedSubject}</p>
             </div>
           </div>
 

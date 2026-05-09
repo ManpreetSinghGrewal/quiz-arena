@@ -37,7 +37,7 @@ const Index = () => {
             <span className="text-gradient">Challenge Your Friends.</span>
           </h1>
           <p className="hero-subtitle">
-            The ultimate quiz platform for college students. Practice solo, compete in real-time battles, and climb the leaderboard.
+            The ultimate quiz platform for CBSE Board students. Practice solo, compete in real-time battles, and climb the leaderboard.
           </p>
           <div className="hero-actions">
             <button className="btn btn-gradient btn-xl" onClick={() => navigate("/signup")}>
@@ -166,7 +166,7 @@ const Index = () => {
             </div>
             <span style={{ fontWeight: 700, color: "var(--foreground)" }}>QuizArena</span>
           </div>
-          <p className="footer-text">© 2025 QuizArena. Built for college students.</p>
+          <p className="footer-text">© 2025 QuizArena. Built for CBSE Board students.</p>
         </div>
       </footer>
     </div>

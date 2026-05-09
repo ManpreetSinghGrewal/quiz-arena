@@ -4,7 +4,7 @@ let onlineUsers = new Set();
 let matchmakingQueue = [];
 let activeMatches = {}; // roomId -> { players: {socketId: {score, finished, timeTaken}}, questions, subject }
 
-const SUBJECTS = ["Physics", "Chemistry", "Biology", "Maths"];
+const SUBJECTS = ["Operating System", "Linux", "Computer Networks", "Data Base Management System", "Data Structures and Algorithms", "C and Pointers"];
 
 let ioInstance = null;
 

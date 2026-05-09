@@ -127,7 +127,7 @@ const generateQuestionsWithGemini = async (subject, classLevel, amount, topics =
   }
 };
 
-export const generateQuestions = async (subject = "Physics", classLevel = "10", amount = 5, topics = []) => {
+export const generateQuestions = async (subject = "Operating System", classLevel = "10", amount = 5, topics = []) => {
   const nAmount = Number(amount) || 5;
 
   // Try Gemini First
