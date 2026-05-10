@@ -39,9 +39,6 @@ const Index = () => {
           <p className="hero-subtitle">
             The ultimate quiz platform for GATE Exam and college UCA MCQ preparation. Practice solo, compete in real-time battles, and climb the leaderboard.
           </p>
-          <p className="hero-subtitle" style={{ fontSize: "1rem", marginTop: "1rem", color: "var(--muted-foreground)" }}>
-            <strong>UCA</strong> stands for University Coding Academy Where You will be provided Best Teachers from College and Industry Experts for Your Placement Training. It was really good Experience to have people directly from Companies like Google, who will teach you which you haven't even known about industrial level things.
-          </p>
           <div className="hero-actions">
             <button className="btn btn-gradient btn-xl" onClick={() => navigate("/signup")}>
               Start Playing Free <ArrowRight style={{ width: "1.25rem", height: "1.25rem" }} />
