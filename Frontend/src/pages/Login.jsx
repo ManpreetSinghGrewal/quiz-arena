@@ -99,7 +99,7 @@ const handleSubmit = async (e) => {
         <div className="auth-deco-orb animate-float-slow" style={{ top: "50%", right: "5rem", width: "4rem", height: "4rem" }} />
         <div className="auth-deco-content">
           <h2>Ready to Challenge Yourself?</h2>
-          <p>Join thousands of students testing their knowledge across multiple game modes.</p>
+          <p>Join thousands of aspirants preparing for GATE and UCA across multiple game modes.</p>
           <div className="auth-features">
             {["4 Game Modes", "Real-time Battles", "Daily Challenges", "Leaderboards"].map((feature) => (
               <div key={feature} className="auth-feature">

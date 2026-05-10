@@ -30,14 +30,17 @@ const Index = () => {
         <div className="hero-inner animate-fade-in">
           <div className="hero-badge">
             <Trophy style={{ width: "1rem", height: "1rem" }} />
-            <span>Join 10,000+ students already learning</span>
+            <span>Join 10,000+ aspirants preparing for GATE & UCA</span>
           </div>
           <h1 className="hero-title">
             Test Your Knowledge.<br />
             <span className="text-gradient">Challenge Your Friends.</span>
           </h1>
           <p className="hero-subtitle">
-            The ultimate quiz platform for CBSE Board students. Practice solo, compete in real-time battles, and climb the leaderboard.
+            The ultimate quiz platform for GATE Exam and college UCA MCQ preparation. Practice solo, compete in real-time battles, and climb the leaderboard.
+          </p>
+          <p className="hero-subtitle" style={{ fontSize: "1rem", marginTop: "1rem", color: "var(--muted-foreground)" }}>
+            <strong>UCA</strong> stands for University Coding Academy Where You will be provided Best Teachers from College and Industry Experts for Your Placement Training. It was really good Experience to have people directly from Companies like Google, who will teach you which you haven't even known about industrial level things.
           </p>
           <div className="hero-actions">
             <button className="btn btn-gradient btn-xl" onClick={() => navigate("/signup")}>
@@ -89,7 +92,7 @@ const Index = () => {
         <div className="why-inner">
           <div className="why-grid">
             <div className="animate-fade-in">
-              <h2 className="section-title">Why Students Love QuizArena</h2>
+              <h2 className="section-title">Why Aspirants Love QuizArena</h2>
               <div className="why-list" style={{ marginTop: "1.5rem" }}>
                 {[
                   { icon: Target, title: "Track Your Progress", description: "Monitor your scores, streaks, and improvement over time with detailed analytics" },
@@ -148,7 +151,7 @@ const Index = () => {
           <div className="cta-box gradient-primary animate-fade-in">
             <h2 className="cta-title">Ready to Test Your Knowledge?</h2>
             <p className="cta-desc">
-              Join thousands of students already competing on QuizArena. Sign up for free and start playing today!
+              Join thousands of aspirants preparing for GATE & UCA on QuizArena. Sign up for free and start playing today!
             </p>
             <button className="btn btn-white btn-xl" onClick={() => navigate("/signup")}>
               Create Free Account <ArrowRight style={{ width: "1.25rem", height: "1.25rem" }} />
@@ -166,7 +169,7 @@ const Index = () => {
             </div>
             <span style={{ fontWeight: 700, color: "var(--foreground)" }}>QuizArena</span>
           </div>
-          <p className="footer-text">© 2025 QuizArena. Built for CBSE Board students.</p>
+          <p className="footer-text">© 2025 QuizArena. Built for GATE and UCA Preparation.</p>
         </div>
       </footer>
     </div>

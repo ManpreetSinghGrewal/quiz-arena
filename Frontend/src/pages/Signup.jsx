@@ -68,7 +68,7 @@ const handleSubmit = async (e) => {
         <div className="auth-deco-orb animate-float-slow" style={{ top: "33%", left: "5rem", width: "4rem", height: "4rem" }} />
         <div className="auth-deco-content">
           <h2>Join the Arena!</h2>
-          <p>Create your account and start competing with students from around the world.</p>
+          <p>Create your account and start competing with aspirants preparing for GATE and UCA from around the world.</p>
           <div className="auth-feature-list">
             {[
               "Test your knowledge with challenging quizzes",
