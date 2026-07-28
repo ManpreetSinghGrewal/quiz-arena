@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, useMemo } from 'react';
 import { io } from 'socket.io-client';
 import { useAuth } from './AuthContext';
+import { getApiBase } from '@/lib/utils';
 
 const SocketContext = createContext(null);
 
@@ -10,8 +11,7 @@ export const SocketProvider = ({ children }) => {
   const { user } = useAuth();
 
   useEffect(() => {
-    const apiBase = import.meta.env.VITE_API_URL || 
-                   (window.location.hostname === 'localhost' ? 'http://localhost:8080' : window.location.origin);
+    const apiBase = getApiBase();
     
     console.log('Connecting to socket at:', apiBase);
     const newSocket = io(apiBase);

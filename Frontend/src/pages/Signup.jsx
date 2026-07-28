@@ -2,12 +2,12 @@ import { useState } from "react";
 import { BrainCircuit, Eye, EyeOff, ArrowRight, Check } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { registerUser } from "../services/authService";
-
-import { getApiBase } from "../lib/utils";
 import AnimatedBackground from "@/components/AnimatedBackground";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Signup = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({ name: "", email: "", password: "" });
   const [isLoading, setIsLoading] = useState(false);
@@ -26,37 +26,26 @@ const handleSubmit = async (e) => {
   setError("");
 
   try {
-    const apiBase = getApiBase();
-
-    const response = await fetch(`${apiBase}/api/auth/register`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(formData),
-    });
-
-    const data = await response.json();
+    const response = await registerUser(formData.name, formData.email, formData.password);
 
     if (!response.ok) {
-      // Backend validation error
-      setError(data.message);
-      setIsLoading(false);
+      setError(response.message || "Registration failed");
       return;
     }
 
-    // Success only if status is 201
-    setSuccess(true);
-
-    setTimeout(() => {
-      navigate("/login");
-    }, 2000);
-
+    if (response.token && response.user) {
+      login(response.user, response.token);
+      setSuccess(true);
+      setTimeout(() => navigate("/dashboard"), 1500);
+    } else {
+      setSuccess(true);
+      setTimeout(() => navigate("/login"), 2000);
+    }
   } catch (err) {
-    setError("Cannot connect to server");
+    setError("Cannot connect to server. Make sure the backend is running on port 8080.");
+  } finally {
+    setIsLoading(false);
   }
-
-  setIsLoading(false);
 };
 
 
@@ -110,11 +99,11 @@ const handleSubmit = async (e) => {
               <div style={{ width: 60, height: 60, borderRadius: "50%", background: "hsla(160, 80%, 45%, 0.2)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1rem" }}>
                 <Check style={{ width: 30, height: 30, color: "var(--success)" }} />
               </div>
-              <h2 style={{ fontSize: "1.25rem", fontWeight: 700, marginBottom: "0.5rem" }}>Check your email!</h2>
+              <h2 style={{ fontSize: "1.25rem", fontWeight: 700, marginBottom: "0.5rem" }}>Account created!</h2>
               <p style={{ color: "var(--muted-foreground)", fontSize: "0.875rem" }}>
-                We've sent a confirmation link to <strong>{formData.email}</strong>. Click the link to activate your account.
+                Welcome to QuizArena, <strong>{formData.name}</strong>. Redirecting to your dashboard...
               </p>
-              <Link to="/login" className="btn btn-gradient" style={{ marginTop: "1.5rem", display: "inline-flex" }}>Go to Login</Link>
+              <Link to="/dashboard" className="btn btn-gradient" style={{ marginTop: "1.5rem", display: "inline-flex" }}>Go to Dashboard</Link>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="auth-form">

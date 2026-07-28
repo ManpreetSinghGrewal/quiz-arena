@@ -1,4 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
+import { getProfile } from "../services/authService";
+
 const AuthContext = createContext({
   user: null,
   loading: true,
@@ -13,16 +15,51 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Load user from localStorage on app start
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    const token = localStorage.getItem("token");
+    const restoreSession = async () => {
+      const token = localStorage.getItem("token");
+      const storedUser = localStorage.getItem("user");
 
-    if (token && storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
+      if (!token) {
+        setLoading(false);
+        return;
+      }
 
-    setLoading(false);
+      if (storedUser) {
+        try {
+          setUser(JSON.parse(storedUser));
+        } catch {
+          localStorage.removeItem("user");
+        }
+      }
+
+      try {
+        const profile = await getProfile();
+        if (profile?.id) {
+          const userData = {
+            id: profile.id,
+            name: profile.name,
+            email: profile.email,
+            avatar: profile.avatar ?? 0,
+          };
+          localStorage.setItem("user", JSON.stringify(userData));
+          setUser(userData);
+        } else {
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          setUser(null);
+        }
+      } catch {
+        if (!storedUser) {
+          localStorage.removeItem("token");
+          setUser(null);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    restoreSession();
   }, []);
 
   const login = (userData, token) => {

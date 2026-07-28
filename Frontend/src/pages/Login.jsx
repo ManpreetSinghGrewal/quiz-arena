@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { BrainCircuit, Eye, EyeOff, ArrowRight } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { loginUser } from "../services/authService";
@@ -7,12 +7,18 @@ import { useAuth } from "@/contexts/AuthContext";
 
 const Login = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { user, loading: authLoading, login } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [user, authLoading, navigate]);
 
 const handleSubmit = async (e) => {
   e.preventDefault();
@@ -22,16 +28,14 @@ const handleSubmit = async (e) => {
   try {
     const response = await loginUser(email, password);
 
-    if (response.token) {
+    if (response.ok && response.token) {
       login(response.user, response.token);
       navigate("/dashboard");
+    } else {
+      setError(response.message || "Login failed");
     }
-    else {
-      setError(response.message);
-    }
-
   } catch (err) {
-    setError("Cannot connect to server");
+    setError("Cannot connect to server. Make sure the backend is running on port 8080.");
   } finally {
     setIsLoading(false);
   }

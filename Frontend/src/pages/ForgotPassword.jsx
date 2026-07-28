@@ -22,6 +22,10 @@ const ForgotPassword = () => {
     setIsLoading(true);
     try {
       const res = await requestPasswordReset(email);
+      if (!res.ok) {
+        setError(res.message || "Failed to send reset code");
+        return;
+      }
       if (res.resetCode) {
         setInfo(`Dev reset code: ${res.resetCode} (expires in ${res.expiresInMinutes || 10} min)`);
       } else {
@@ -29,7 +33,7 @@ const ForgotPassword = () => {
       }
       setStep(2);
     } catch (err) {
-      setError("Cannot connect to server");
+      setError("Cannot connect to server. Make sure the backend is running on port 8080.");
     } finally {
       setIsLoading(false);
     }
@@ -48,16 +52,14 @@ const ForgotPassword = () => {
     setIsLoading(true);
     try {
       const res = await resetPasswordWithCode(email, code, newPassword);
-      if (res.message && String(res.message).toLowerCase().includes("success")) {
+      if (res.ok && res.message && String(res.message).toLowerCase().includes("success")) {
         setInfo(res.message);
         setTimeout(() => navigate("/login"), 800);
-      } else if (res.message) {
-        setError(res.message);
       } else {
-        setError("Failed to reset password");
+        setError(res.message || "Failed to reset password");
       }
     } catch (err) {
-      setError("Cannot connect to server");
+      setError("Cannot connect to server. Make sure the backend is running on port 8080.");
     } finally {
       setIsLoading(false);
     }

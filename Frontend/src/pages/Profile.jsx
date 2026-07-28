@@ -201,7 +201,7 @@ const Profile = () => {
   const updateAvatar = async (avatarIndex) => {
     const token = localStorage.getItem("token");
     try {
-      const apiBase = import.meta.env.VITE_API_URL || "http://localhost:4000";
+      const apiBase = getApiBase();
       const res = await fetch(`${apiBase}/api/auth/update-profile`, {
         method: "PUT",
         headers: {

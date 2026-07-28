@@ -2,9 +2,11 @@ import { BrainCircuit, BookOpen, Calendar, Swords, Zap, ArrowRight, Trophy, User
 import { Link, useNavigate } from "react-router-dom";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import Header from "@/components/Header";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Index = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const features = [
     { icon: BookOpen, title: "Normal Quiz", description: "Practice with quizzes at your own pace across multiple difficulty levels", iconBg: "hsla(250, 90%, 65%, 0.1)", iconColor: "var(--game-normal)" },
@@ -40,12 +42,20 @@ const Index = () => {
             The ultimate quiz platform for GATE Exam and college UCA MCQ preparation. Practice solo, compete in real-time battles, and climb the leaderboard.
           </p>
           <div className="hero-actions">
-            <button className="btn btn-gradient btn-xl" onClick={() => navigate("/signup")}>
-              Start Playing Free <ArrowRight style={{ width: "1.25rem", height: "1.25rem" }} />
-            </button>
-            <button className="btn btn-outline btn-xl" onClick={() => navigate("/login")}>
-              I already have an account
-            </button>
+            {user ? (
+              <button className="btn btn-gradient btn-xl" onClick={() => navigate("/dashboard")}>
+                Go to Dashboard <ArrowRight style={{ width: "1.25rem", height: "1.25rem" }} />
+              </button>
+            ) : (
+              <>
+                <button className="btn btn-gradient btn-xl" onClick={() => navigate("/signup")}>
+                  Start Playing Free <ArrowRight style={{ width: "1.25rem", height: "1.25rem" }} />
+                </button>
+                <button className="btn btn-outline btn-xl" onClick={() => navigate("/login")}>
+                  I already have an account
+                </button>
+              </>
+            )}
           </div>
 
           <div className="hero-stats animate-fade-in" style={{ animationDelay: "200ms" }}>

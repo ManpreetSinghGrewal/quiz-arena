@@ -1,4 +1,7 @@
 import mongoose from 'mongoose';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const getCandidateUris = () => {
   const candidates = [];
@@ -14,11 +17,13 @@ export const connectDB = async () => {
   const uris = getCandidateUris();
   for (const uri of uris) {
     try {
-      await mongoose.connect(uri);
-      console.log('MongoDB Connected');
+      const sanitizedUri = uri.replace(/\/\/[^:]+:[^@]+@/, '//***:***@');
+      console.log(`Connecting to MongoDB at: ${sanitizedUri}`);
+      await mongoose.connect(uri, { serverSelectionTimeoutMS: 5000 });
+      console.log(`MongoDB Connected successfully to: ${sanitizedUri}`);
       return;
     } catch (error) {
-      console.error(`DB Connection Failed (${uri})`, error?.code || error?.message || error);
+      console.error(`DB Connection Failed (${uri.split('@')[1] || uri})`, error?.code || error?.message || error);
     }
   }
 

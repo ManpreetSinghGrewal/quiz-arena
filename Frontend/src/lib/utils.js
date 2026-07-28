@@ -3,7 +3,16 @@ export function cn(...classes) {
 }
 
 export function getApiBase() {
-  return import.meta.env.VITE_API_URL || 
-         (window.location.hostname === 'localhost' ? 'http://localhost:8080' : window.location.origin);
+  const configured = import.meta.env.VITE_API_URL?.trim();
+  if (configured) return configured.replace(/\/$/, "");
+
+  if (typeof window !== "undefined") {
+    if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+      return "http://localhost:8080";
+    }
+    return window.location.origin;
+  }
+
+  return "http://localhost:8080";
 }
 

@@ -7,7 +7,7 @@ import { generateQuestions } from "../services/quizService.js";
 import { notifyStatsUpdate, broadcastActivity } from "../services/socketService.js";
 
 const buildToken = (userId) =>
-  jwt.sign({ id: userId }, process.env.JWT_SECRET, { expiresIn: "24h" });
+  jwt.sign({ id: userId }, process.env.JWT_SECRET || "dev-secret-change-in-production", { expiresIn: "24h" });
 
 const buildUserPayload = (user) => ({
   id: user._id,

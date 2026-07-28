@@ -8,6 +8,7 @@ import { BookOpen, Calendar, Swords, Zap, Trophy, Target, Flame, Award } from "l
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSocket } from "@/contexts/SocketContext";
+import { getApiBase } from "@/lib/utils";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -27,14 +28,11 @@ const Dashboard = () => {
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/login");
-      return;
-    }
+    if (!token) return;
     fetchTopPlayers();
     fetchProfileStats(token);
     fetchRecentHistory(token);
-  }, [navigate]);
+  }, []);
 
   useEffect(() => {
     if (!socket) return;
@@ -64,11 +62,6 @@ const Dashboard = () => {
   }, [socket]);
 
 
-
-  const getApiBase = () => {
-    return import.meta.env.VITE_API_URL || 
-           (window.location.hostname === 'localhost' ? 'http://localhost:8080' : window.location.origin);
-  };
 
   const fetchTopPlayers = async () => {
     try {

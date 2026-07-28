@@ -43,9 +43,11 @@ app.use('/api/auth', authRoutes);
 const frontendPath = path.join(__dirname, '../Frontend/dist');
 app.use(express.static(frontendPath));
 
-// Handle SPA routing
-// Handle SPA routing
-app.use((req, res) => {
+// Handle SPA routing (skip API routes)
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api/')) {
+    return res.status(404).json({ message: 'API route not found' });
+  }
   res.sendFile(path.join(frontendPath, 'index.html'));
 });
 
