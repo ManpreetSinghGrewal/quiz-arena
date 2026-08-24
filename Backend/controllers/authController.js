@@ -129,6 +129,7 @@ export const getProfile = async (req, res) => {
       currentStreak: user.currentStreak || 0,
       lastQuizDate: user.lastQuizDate || null,
       lastQuizLocalDate: user.lastQuizLocalDate || null,
+      badges: user.badges || [],
     });
   } catch (error) {
     console.error("PROFILE ERROR:", error);
@@ -234,6 +235,15 @@ export const saveQuizResult = async (req, res) => {
       nextStreak = 1;
     }
 
+    // Badges Logic
+    let earnedBadges = [];
+    const currentBadges = user.badges || [];
+    if (nextTotalQuizzes === 1 && !currentBadges.includes("First Blood")) earnedBadges.push("First Blood");
+    if (incCorrect === incTotalQuestions && incTotalQuestions >= 5 && !currentBadges.includes("Flawless")) earnedBadges.push("Flawless");
+    if (nextTotalQuizzes >= 10 && !currentBadges.includes("Veteran")) earnedBadges.push("Veteran");
+    if (nextStreak >= 5 && !currentBadges.includes("On Fire")) earnedBadges.push("On Fire");
+    const updatedBadges = [...currentBadges, ...earnedBadges];
+
     const updatedUser = await User.findByIdAndUpdate(
       userId,
       {
@@ -248,6 +258,7 @@ export const saveQuizResult = async (req, res) => {
           currentStreak: nextStreak,
           lastQuizLocalDate: localDate,
           lastQuizDate: new Date(),
+          badges: updatedBadges,
         },
       },
       { new: true }
@@ -261,6 +272,7 @@ export const saveQuizResult = async (req, res) => {
       correctAnswers: nextCorrectAnswers,
       accuracy: nextAccuracy,
       currentStreak: nextStreak,
+      badges: updatedBadges,
     };
 
     notifyStatsUpdate(userId, stats);
@@ -275,6 +287,7 @@ export const saveQuizResult = async (req, res) => {
       message: "Quiz result saved successfully",
       resultId: newResult._id,
       stats,
+      earnedBadges,
     });
 
   } catch (error) {
@@ -470,6 +483,53 @@ export const resetPasswordWithCode = async (req, res) => {
     return res.json({ message: "Password reset successfully. Please log in." });
   } catch (error) {
     console.error("RESET PASSWORD ERROR:", error);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+export const getMistakesQuestions = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    // Find all quiz results for this user
+    const history = await QuizResult.find({ user: userId });
+    
+    // Aggregate all incorrect questions
+    let mistakes = [];
+    history.forEach(result => {
+      if (result.questions) {
+        result.questions.forEach(q => {
+          if (q.isCorrect === false) {
+            mistakes.push(q);
+          }
+        });
+      }
+    });
+
+    // Remove duplicates based on question text
+    const uniqueMistakesMap = new Map();
+    mistakes.forEach(m => {
+      uniqueMistakesMap.set(m.question, m);
+    });
+    
+    const uniqueMistakes = Array.from(uniqueMistakesMap.values());
+    
+    // Shuffle and limit to 10 questions for a quick review quiz
+    const shuffled = uniqueMistakes.sort(() => 0.5 - Math.random());
+    const selected = shuffled.slice(0, 10);
+
+    // Format them for the Quiz frontend
+    const questions = selected.map((q, idx) => ({
+      id: idx + 1,
+      question: q.question,
+      options: q.options,
+      correctAnswer: q.correctAnswer,
+      category: "Mistakes Review",
+      hint: q.hint || "Think carefully about why you got this wrong previously.",
+      explanation: q.explanation || "This is a question you answered incorrectly in the past."
+    }));
+
+    res.json({ questions });
+  } catch (error) {
+    console.error("GET MISTAKES ERROR:", error);
     res.status(500).json({ message: "Server Error" });
   }
 };

@@ -83,6 +83,7 @@ const Profile = () => {
         accuracy: data.accuracy || 0,
         prevAccuracy: data.prevAccuracy || 0,
         currentStreak: data.currentStreak || 0,
+        badges: data.badges || [],
       });
 
       setNewName(data.name);
@@ -503,20 +504,25 @@ const Profile = () => {
             <div>
               <h3 style={{ fontSize: "1.25rem", fontWeight: 700, marginBottom: "1.5rem" }}>🏆 Achievements</h3>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: "1rem" }}>
-                <div style={{ padding: "1.5rem", background: "var(--secondary)", borderRadius: "var(--radius)", textAlign: "center", opacity: profile.totalQuizzes >= 1 ? 1 : 0.4 }}>
+                <div style={{ padding: "1.5rem", background: "var(--secondary)", borderRadius: "var(--radius)", textAlign: "center", opacity: profile.badges?.includes("First Blood") ? 1 : 0.4 }}>
                   <div style={{ fontSize: "2.5rem", marginBottom: "0.5rem" }}>📝</div>
-                  <p style={{ fontSize: "0.875rem", fontWeight: 600 }}>First Quiz</p>
+                  <p style={{ fontSize: "0.875rem", fontWeight: 600 }}>First Blood</p>
                   <p style={{ fontSize: "0.75rem", color: "var(--muted-foreground)" }}>Complete 1 quiz</p>
                 </div>
-                <div style={{ padding: "1.5rem", background: "var(--secondary)", borderRadius: "var(--radius)", textAlign: "center", opacity: profile.totalQuizzes >= 5 ? 1 : 0.4 }}>
-                  <div style={{ fontSize: "2.5rem", marginBottom: "0.5rem" }}>⚡</div>
-                  <p style={{ fontSize: "0.875rem", fontWeight: 600 }}>Quiz Starter</p>
-                  <p style={{ fontSize: "0.75rem", color: "var(--muted-foreground)" }}>Complete 5 quizzes</p>
+                <div style={{ padding: "1.5rem", background: "var(--secondary)", borderRadius: "var(--radius)", textAlign: "center", opacity: profile.badges?.includes("Flawless") ? 1 : 0.4 }}>
+                  <div style={{ fontSize: "2.5rem", marginBottom: "0.5rem" }}>💎</div>
+                  <p style={{ fontSize: "0.875rem", fontWeight: 600 }}>Flawless</p>
+                  <p style={{ fontSize: "0.75rem", color: "var(--muted-foreground)" }}>100% on 5+ questions</p>
                 </div>
-                <div style={{ padding: "1.5rem", background: "var(--secondary)", borderRadius: "var(--radius)", textAlign: "center", opacity: profile.totalQuizzes >= 10 ? 1 : 0.4 }}>
+                <div style={{ padding: "1.5rem", background: "var(--secondary)", borderRadius: "var(--radius)", textAlign: "center", opacity: profile.badges?.includes("Veteran") ? 1 : 0.4 }}>
                   <div style={{ fontSize: "2.5rem", marginBottom: "0.5rem" }}>🚀</div>
-                  <p style={{ fontSize: "0.875rem", fontWeight: 600 }}>Quiz Master</p>
+                  <p style={{ fontSize: "0.875rem", fontWeight: 600 }}>Veteran</p>
                   <p style={{ fontSize: "0.75rem", color: "var(--muted-foreground)" }}>Complete 10 quizzes</p>
+                </div>
+                <div style={{ padding: "1.5rem", background: "var(--secondary)", borderRadius: "var(--radius)", textAlign: "center", opacity: profile.badges?.includes("On Fire") ? 1 : 0.4 }}>
+                  <div style={{ fontSize: "2.5rem", marginBottom: "0.5rem" }}>🔥</div>
+                  <p style={{ fontSize: "0.875rem", fontWeight: 600 }}>On Fire</p>
+                  <p style={{ fontSize: "0.75rem", color: "var(--muted-foreground)" }}>5 day streak</p>
                 </div>
                 <div style={{ padding: "1.5rem", background: "var(--secondary)", borderRadius: "var(--radius)", textAlign: "center", opacity: profile.accuracy >= 80 ? 1 : 0.4 }}>
                   <div style={{ fontSize: "2.5rem", marginBottom: "0.5rem" }}>🎯</div>
@@ -524,14 +530,9 @@ const Profile = () => {
                   <p style={{ fontSize: "0.75rem", color: "var(--muted-foreground)" }}>{profile.accuracy}% accuracy</p>
                 </div>
                 <div style={{ padding: "1.5rem", background: "var(--secondary)", borderRadius: "var(--radius)", textAlign: "center", opacity: profile.totalScore >= 1000 ? 1 : 0.4 }}>
-                  <div style={{ fontSize: "2.5rem", marginBottom: "0.5rem" }}>💎</div>
+                  <div style={{ fontSize: "2.5rem", marginBottom: "0.5rem" }}>👑</div>
                   <p style={{ fontSize: "0.875rem", fontWeight: 600 }}>Score Collector</p>
                   <p style={{ fontSize: "0.75rem", color: "var(--muted-foreground)" }}>Earn 1000+ points</p>
-                </div>
-                <div style={{ padding: "1.5rem", background: "var(--secondary)", borderRadius: "var(--radius)", textAlign: "center", opacity: profile.totalScore >= 5000 ? 1 : 0.4 }}>
-                  <div style={{ fontSize: "2.5rem", marginBottom: "0.5rem" }}>👑</div>
-                  <p style={{ fontSize: "0.875rem", fontWeight: 600 }}>Legend</p>
-                  <p style={{ fontSize: "0.75rem", color: "var(--muted-foreground)" }}>Earn 5000+ points</p>
                 </div>
               </div>
             </div>

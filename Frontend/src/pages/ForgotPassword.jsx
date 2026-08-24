@@ -33,7 +33,7 @@ const ForgotPassword = () => {
       }
       setStep(2);
     } catch (err) {
-      setError("Cannot connect to server. Make sure the backend is running on port 8080.");
+      setError("Cannot connect to server. Make sure the backend is running on port 5000.");
     } finally {
       setIsLoading(false);
     }
@@ -59,7 +59,7 @@ const ForgotPassword = () => {
         setError(res.message || "Failed to reset password");
       }
     } catch (err) {
-      setError("Cannot connect to server. Make sure the backend is running on port 8080.");
+      setError("Cannot connect to server. Make sure the backend is running on port 5000.");
     } finally {
       setIsLoading(false);
     }

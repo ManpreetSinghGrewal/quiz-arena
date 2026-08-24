@@ -81,7 +81,9 @@ const generateQuestionsWithGemini = async (subject, classLevel, amount, topics =
     {
       "question": "The question text",
       "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
-      "correctAnswer": 0 // index of the correct option in the options array
+      "correctAnswer": 0, // index of the correct option in the options array
+      "hint": "A short, helpful hint that doesn't reveal the answer",
+      "explanation": "A clear, concise explanation of why the correct answer is correct"
     }
     Ensure questions are accurate, challenging but fair, and options are distinct. Do not include any markdown formatting like \`\`\`json or \`\`\`.`;
 
@@ -100,7 +102,9 @@ const generateQuestionsWithGemini = async (subject, classLevel, amount, topics =
       question: decodeHTML(q.question),
       options: q.options.map(opt => decodeHTML(opt)),
       correctAnswer: q.correctAnswer,
-      category: subject
+      category: subject,
+      hint: q.hint || "No hint available",
+      explanation: q.explanation || "No explanation available"
     }));
   } catch (error) {
     console.error("Gemini question generation failed:", error.message);

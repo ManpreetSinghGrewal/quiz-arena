@@ -42,7 +42,7 @@ const handleSubmit = async (e) => {
       setTimeout(() => navigate("/login"), 2000);
     }
   } catch (err) {
-    setError("Cannot connect to server. Make sure the backend is running on port 8080.");
+    setError("Cannot connect to server. Make sure the backend is running on port 5000.");
   } finally {
     setIsLoading(false);
   }

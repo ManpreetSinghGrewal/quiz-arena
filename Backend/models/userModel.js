@@ -69,6 +69,10 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    badges: {
+      type: [String],
+      default: [],
+    },
   },
   { timestamps: true }
 );

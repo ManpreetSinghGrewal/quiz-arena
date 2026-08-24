@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from "react";
-import { BrainCircuit, LogOut, Settings, User, Trophy, Users } from "lucide-react";
+import { BrainCircuit, LogOut, Settings, User, Trophy, Users, Moon, Sun } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSocket } from "@/contexts/SocketContext";
+import { useTheme } from "next-themes";
 
 const AVATARS = [
   { emoji: "🧠", bg: "hsl(250, 90%, 65%)" },
@@ -23,6 +24,7 @@ const Header = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { onlineCount } = useSocket();
+  const { theme, setTheme } = useTheme();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -66,6 +68,14 @@ const Header = () => {
                   <Trophy style={{ width: "1rem", height: "1rem" }} /> Leaderboard
                 </button>
               </nav>
+
+              <button
+                className="btn btn-ghost btn-icon"
+                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                title="Toggle Theme"
+              >
+                {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+              </button>
 
               <div className="dropdown-wrapper" ref={dropdownRef}>
                 <button

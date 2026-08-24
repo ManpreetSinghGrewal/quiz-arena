@@ -8,7 +8,7 @@
 }
 
 :root {
-  /* Dark Mode Design Tokens */
+  /* Dark Mode Design Tokens (Default) */
   --background: hsl(230, 25%, 5%);
   --foreground: hsl(210, 40%, 98%);
   --card: hsl(230, 25%, 8%);
@@ -50,6 +50,35 @@
   --shadow-card-hover: 0 8px 40px -4px hsla(250, 90%, 65%, 0.25), 0 0 0 1px hsla(250, 90%, 65%, 0.2);
   --shadow-glow: 0 0 30px -5px hsla(250, 90%, 65%, 0.4);
   --shadow-glow-accent: 0 0 30px -5px hsla(340, 85%, 60%, 0.4);
+}
+
+[data-theme='light'] {
+  --background: hsl(0, 0%, 98%);
+  --foreground: hsl(230, 25%, 15%);
+  --card: hsl(0, 0%, 100%);
+  --card-foreground: hsl(230, 25%, 15%);
+  --popover: hsl(0, 0%, 100%);
+  --popover-foreground: hsl(230, 25%, 15%);
+  --primary: hsl(250, 90%, 65%);
+  --primary-foreground: hsl(0, 0%, 100%);
+  --secondary: hsl(210, 40%, 90%);
+  --secondary-foreground: hsl(230, 25%, 15%);
+  --muted: hsl(210, 40%, 92%);
+  --muted-foreground: hsl(215, 15%, 45%);
+  --accent: hsl(340, 85%, 60%);
+  --accent-foreground: hsl(0, 0%, 100%);
+  --destructive: hsl(0, 70%, 50%);
+  --destructive-foreground: hsl(0, 0%, 100%);
+  --success: hsl(160, 80%, 40%);
+  --success-foreground: hsl(0, 0%, 100%);
+  --warning: hsl(45, 95%, 45%);
+  --warning-foreground: hsl(0, 0%, 100%);
+  --border: hsl(214, 32%, 85%);
+  --input: hsl(214, 32%, 85%);
+  --ring: hsl(250, 90%, 65%);
+
+  --shadow-card: 0 4px 12px -2px hsla(0, 0%, 0%, 0.05), 0 0 0 1px hsl(214, 32%, 91%);
+  --shadow-card-hover: 0 8px 24px -4px hsla(0, 0%, 0%, 0.08), 0 0 0 1px hsl(214, 32%, 85%);
 }
 
 html {

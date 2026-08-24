@@ -4,7 +4,7 @@ import ProgressBar from "@/components/ProgressBar";
 import QuizOption from "@/components/QuizOption";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import SubjectSelector from "@/components/SubjectSelector";
-import { ArrowRight, Clock, BookOpen, Zap, Calendar, Swords, Trophy, XCircle, Loader2 } from "lucide-react";
+import { ArrowRight, Clock, BookOpen, Zap, Calendar, Swords, Trophy, XCircle, Loader2, Lightbulb, Scissors, Share2 } from "lucide-react";
 import { cn, getApiBase } from "@/lib/utils";
 import { useSocket } from "@/contexts/SocketContext";
 import TopicSelector from "@/components/TopicSelector";
@@ -14,6 +14,7 @@ const quizModes = {
   daily: { title: "Daily Challenge", icon: Calendar, iconBg: "hsla(280, 85%, 65%, 0.1)", iconColor: "var(--game-daily)", timePerQuestion: 20 },
   speed: { title: "Speed Quiz", icon: Zap, iconBg: "hsla(160, 80%, 45%, 0.1)", iconColor: "var(--game-speed)", timePerQuestion: 10 },
   battle: { title: "Battle Mode", icon: Swords, iconBg: "hsla(340, 85%, 60%, 0.1)", iconColor: "var(--game-battle)", timePerQuestion: 20 },
+  mistakes: { title: "Review Mistakes", icon: BookOpen, iconBg: "hsla(0, 80%, 50%, 0.1)", iconColor: "var(--destructive)", timePerQuestion: 30 },
 };
 
 const SUBJECTS = ["Operating System", "Linux", "Computer Networks", "Data Base Management System", "Data Structures and Algorithms", "C and Pointers"];
@@ -27,6 +28,19 @@ const fetchQuestionsFromAPI = async ({ subject, classLevel, questionCount, topic
   const data = await response.json();
   if (!response.ok) {
     throw new Error(data.message || "Failed to load questions");
+  }
+  return data.questions || [];
+};
+
+const fetchMistakesQuestions = async () => {
+  const token = localStorage.getItem("token");
+  const apiBase = getApiBase();
+  const response = await fetch(`${apiBase}/api/auth/quiz-mistakes`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to load mistakes");
   }
   return data.questions || [];
 };
@@ -60,6 +74,14 @@ const Quiz = () => {
   const [classLevel, setClassLevel] = useState("10");
   const [questionCount, setQuestionCount] = useState(10);
 
+  // Lifelines and Streaks
+  const [used5050, setUsed5050] = useState(false);
+  const [usedHint, setUsedHint] = useState(false);
+  const [hiddenOptions, setHiddenOptions] = useState([]);
+  const [showHint, setShowHint] = useState(false);
+  const [currentStreak, setCurrentStreak] = useState(0);
+  const [showStreakPopup, setShowStreakPopup] = useState(false);
+
   const quizConfig = quizModes[mode] || quizModes.normal;
   const question = questions[currentQuestion];
   const totalQuestions = questions.length;
@@ -72,7 +94,6 @@ const Quiz = () => {
       setTimeLeft(matchData.timePerQuestion || 20);
       setHasStarted(true);
     } else if (mode === "battle" && !matchData) {
-      // Direct navigation to /quiz/battle without data is not allowed
       navigate("/matchmaking");
     }
   }, [isMultiplayer, matchData, mode, navigate]);
@@ -81,15 +102,11 @@ const Quiz = () => {
   useEffect(() => {
     if (!isMultiplayer || !socket) return;
 
-    const handleOpponentProgress = (data) => {
-      setOpponentProgress(data);
-    };
-
+    const handleOpponentProgress = (data) => setOpponentProgress(data);
     const handleMatchResult = (data) => {
       setBattleResult(data);
       setIsFinished(true);
     };
-
     const handleOpponentDisconnected = () => {
       setLoadError("Opponent disconnected. Match cancelled.");
       setIsFinished(true);
@@ -128,7 +145,7 @@ const Quiz = () => {
             correctAnswers,
             totalQuestions,
             mode,
-            subject: selectedSubject,
+            subject: selectedSubject || "Mistakes Review",
             topics: selectedTopics,
             classLevel,
             questions: questions.map((q, idx) => ({
@@ -136,7 +153,9 @@ const Quiz = () => {
               options: q.options,
               correctAnswer: q.correctAnswer,
               userAnswer: answers[idx]?.selectedIdx,
-              isCorrect: answers[idx]?.correct
+              isCorrect: answers[idx]?.correct,
+              hint: q.hint,
+              explanation: q.explanation
             })),
             clientLocalDate: new Date().toLocaleDateString("en-CA"),
           }),
@@ -146,10 +165,9 @@ const Quiz = () => {
       }
     };
 
-
     savedResultRef.current = true;
     saveResult();
-  }, [isFinished, answers, score, totalQuestions, mode, selectedSubject, classLevel, isMultiplayer]);
+  }, [isFinished, answers, score, totalQuestions, mode, selectedSubject, classLevel, isMultiplayer, questions, selectedTopics]);
 
   useEffect(() => {
     if (isFinished || isRevealed || !hasStarted || !question) return;
@@ -166,7 +184,7 @@ const Quiz = () => {
   }, [currentQuestion, isRevealed, isFinished, hasStarted, question, quizConfig.timePerQuestion]);
 
   const startQuiz = async () => {
-    if (!selectedSubject) {
+    if (mode !== "mistakes" && !selectedSubject) {
       setLoadError("Please choose a subject");
       return;
     }
@@ -180,14 +198,23 @@ const Quiz = () => {
     setIsRevealed(false);
     setScore(0);
     setAnswers([]);
+    setUsed5050(false);
+    setUsedHint(false);
+    setCurrentStreak(0);
 
     try {
-      const fetchedQuestions = await fetchQuestionsFromAPI({
-        subject: selectedSubject,
-        classLevel,
-        questionCount,
-        topics: selectedTopics,
-      });
+      let fetchedQuestions = [];
+      if (mode === "mistakes") {
+        fetchedQuestions = await fetchMistakesQuestions();
+      } else {
+        fetchedQuestions = await fetchQuestionsFromAPI({
+          subject: selectedSubject,
+          classLevel,
+          questionCount,
+          topics: selectedTopics,
+        });
+      }
+      
       if (!fetchedQuestions.length) {
         setLoadError("No questions found for selected options");
         return;
@@ -202,6 +229,23 @@ const Quiz = () => {
     }
   };
 
+  const handle5050 = () => {
+    if (used5050 || isRevealed || !question) return;
+    const wrongIndices = [];
+    question.options.forEach((_, idx) => {
+      if (idx !== question.correctAnswer) wrongIndices.push(idx);
+    });
+    const shuffled = wrongIndices.sort(() => 0.5 - Math.random());
+    setHiddenOptions(shuffled.slice(0, 2));
+    setUsed5050(true);
+  };
+
+  const handleHint = () => {
+    if (usedHint || isRevealed || !question) return;
+    setShowHint(true);
+    setUsedHint(true);
+  };
+
   const handleSubmit = () => {
     if (isRevealed || !question) return;
     const isCorrect = selectedAnswer === question.correctAnswer;
@@ -209,12 +253,24 @@ const Quiz = () => {
 
     let points = 0;
     if (isCorrect) {
-      if (mode === "normal") points = 14;
-      else if (mode === "daily") points = 12;
-      else if (mode === "speed") points = 10;
-      else if (mode === "battle") points = 20;
-      else points = 14;
+      let basePoints = 14;
+      if (mode === "daily") basePoints = 12;
+      else if (mode === "speed") basePoints = 10;
+      else if (mode === "battle") basePoints = 20;
+
+      // Apply streak multiplier
+      const multiplier = 1 + (currentStreak * 0.1);
+      points = Math.round(basePoints * multiplier);
+      
       setScore((prev) => prev + points);
+      setCurrentStreak(prev => prev + 1);
+      
+      if (currentStreak >= 2) {
+        setShowStreakPopup(true);
+        setTimeout(() => setShowStreakPopup(false), 2000);
+      }
+    } else {
+      setCurrentStreak(0);
     }
 
     setAnswers((prev) => [...prev, { correct: isCorrect, time: timeTaken, selectedIdx: selectedAnswer }]);
@@ -247,6 +303,8 @@ const Quiz = () => {
     setSelectedAnswer(null);
     setIsRevealed(false);
     setTimeLeft(quizConfig.timePerQuestion);
+    setHiddenOptions([]);
+    setShowHint(false);
   };
 
   const resetToSetup = () => {
@@ -264,6 +322,28 @@ const Quiz = () => {
     setScore(0);
     setAnswers([]);
     setLoadError("");
+    setUsed5050(false);
+    setUsedHint(false);
+    setCurrentStreak(0);
+  };
+
+  const handleShare = async () => {
+    const text = `I just scored ${score} on Quiz Arena! \
+Accuracy: ${Math.round((answers.filter(a => a.correct).length / totalQuestions) * 100)}%\
+Can you beat my score? https://quiz-arena-lake.vercel.app/`;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: "My Quiz Arena Score",
+          text: text,
+        });
+      } catch (err) {
+        console.error("Error sharing", err);
+      }
+    } else {
+      navigator.clipboard.writeText(text);
+      alert("Results copied to clipboard!");
+    }
   };
 
   if (isFinished) {
@@ -331,7 +411,7 @@ const Quiz = () => {
           <div className="card quiz-results-card glow-border">
             <div className="quiz-results-icon gradient-primary">🎉</div>
             <h1>Quiz Complete!</h1>
-            <p className="quiz-results-subtitle">Subject: {selectedSubject}</p>
+            <p className="quiz-results-subtitle">{mode === "mistakes" ? "Mistakes Review" : `Subject: ${selectedSubject}`}</p>
             <div className="quiz-results-stats">
               <div className="quiz-results-stat">
                 <p className="quiz-results-stat-value">{score}</p>
@@ -355,6 +435,7 @@ const Quiz = () => {
             </div>
             <div className="quiz-results-actions">
               <button className="btn btn-outline" onClick={() => navigate("/dashboard")}>Back to Home</button>
+              <button className="btn btn-outline" onClick={handleShare}><Share2 style={{marginRight: 6}} size={18}/> Share</button>
               <button className="btn btn-gradient" onClick={resetToSetup}>Play Again</button>
             </div>
           </div>
@@ -368,23 +449,30 @@ const Quiz = () => {
       <div className="page-center">
         <AnimatedBackground variant="gradient" />
         <div className="card glow-border animate-fade-in" style={{ width: "min(640px, 92vw)", padding: "1.5rem" }}>
-          <h2 style={{ marginBottom: "1rem" }}>Quiz Setup</h2>
-          <SubjectSelector subjects={SUBJECTS} selectedSubject={selectedSubject} onSelect={(s) => { setSelectedSubject(s); setSelectedTopics([]); }} />
+          <h2 style={{ marginBottom: "1rem" }}>{mode === "mistakes" ? "Review Your Mistakes" : "Quiz Setup"}</h2>
           
+          {mode !== "mistakes" ? (
+            <>
+              <SubjectSelector subjects={SUBJECTS} selectedSubject={selectedSubject} onSelect={(s) => { setSelectedSubject(s); setSelectedTopics([]); }} />
+              <div style={{ marginTop: "1rem" }}>
+                <label className="label" htmlFor="questionCount">Number of Questions</label>
+                <input
+                  id="questionCount"
+                  type="number"
+                  min={1}
+                  max={50}
+                  className="input"
+                  value={questionCount}
+                  onChange={(e) => setQuestionCount(Math.min(Math.max(Number(e.target.value), 1), 50))}
+                />
+              </div>
+            </>
+          ) : (
+            <p style={{ color: "var(--muted-foreground)" }}>This mode will quiz you on up to 10 questions that you have answered incorrectly in the past.</p>
+          )}
 
-          <div style={{ marginTop: "1rem" }}>
-            <label className="label" htmlFor="questionCount">Number of Questions</label>
-            <input
-              id="questionCount"
-              type="number"
-              min={1}
-              max={50}
-              className="input"
-              value={questionCount}
-              onChange={(e) => setQuestionCount(Math.min(Math.max(Number(e.target.value), 1), 50))}
-            />
-          </div>
           {loadError && <p style={{ marginTop: "0.75rem", color: "var(--destructive)", fontSize: "0.875rem" }}>{loadError}</p>}
+          
           <button className="btn btn-gradient btn-lg" style={{ marginTop: "1rem", width: "100%" }} onClick={startQuiz} disabled={isLoading}>
             {isLoading ? "Loading..." : "Start Quiz"}
           </button>
@@ -394,6 +482,7 @@ const Quiz = () => {
   }
 
   const Icon = quizConfig.icon;
+  const progressPercent = (timeLeft / quizConfig.timePerQuestion) * 100;
 
   if (!question) {
     return (
@@ -410,7 +499,18 @@ const Quiz = () => {
   return (
     <div className="page">
       <AnimatedBackground variant="gradient" />
-      <header className="quiz-header glass">
+      
+      {/* Time Progress Bar */}
+      <div style={{ position: "fixed", top: 0, left: 0, right: 0, height: "6px", background: "rgba(0,0,0,0.1)", zIndex: 50 }}>
+        <div style={{ 
+          height: "100%", 
+          width: `${progressPercent}%`, 
+          background: progressPercent > 30 ? "var(--primary)" : "var(--destructive)",
+          transition: "width 1s linear, background-color 0.3s ease" 
+        }} />
+      </div>
+
+      <header className="quiz-header glass" style={{ marginTop: "6px" }}>
         <div className="container quiz-header-inner">
           <div className="quiz-header-left">
             <div className="quiz-mode-icon" style={{ background: quizConfig.iconBg }}>
@@ -418,7 +518,7 @@ const Quiz = () => {
             </div>
             <div>
               <p className="quiz-mode-title">{quizConfig.title}</p>
-              <p className="quiz-mode-category">{selectedSubject}</p>
+              <p className="quiz-mode-category">{selectedSubject || "Mistakes Review"}</p>
             </div>
           </div>
 
@@ -437,9 +537,12 @@ const Quiz = () => {
           )}
 
           <div className="quiz-header-right">
-            <div style={{ textAlign: "right" }}>
+            <div style={{ textAlign: "right", position: "relative" }}>
               <p className="quiz-score-label">Score</p>
-              <p className="quiz-score-value">{score}</p>
+              <p className="quiz-score-value">
+                {score}
+                {showStreakPopup && <span style={{ position: "absolute", right: -40, top: -10, color: "#ffb703", fontWeight: "bold", fontSize: "0.8rem", animation: "fade-up 1s forwards" }}>x{1 + (currentStreak * 0.1).toFixed(1)}</span>}
+              </p>
             </div>
             <div className={cn("quiz-timer", timeLeft <= 10 && "danger")}>
               <Clock />
@@ -450,28 +553,69 @@ const Quiz = () => {
       </header>
 
       <main className="quiz-main">
-        <div className="animate-fade-in" style={{ marginBottom: "2rem" }}>
-          <ProgressBar current={currentQuestion + 1} total={totalQuestions} />
+        <div className="animate-fade-in" style={{ marginBottom: "2rem", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ flex: 1, marginRight: "1rem" }}>
+            <ProgressBar current={currentQuestion + 1} total={totalQuestions} />
+          </div>
+          {!isMultiplayer && (
+            <div style={{ display: "flex", gap: "0.5rem" }}>
+              <button 
+                className="btn btn-outline btn-sm" 
+                onClick={handle5050} 
+                disabled={used5050 || isRevealed}
+                style={{ opacity: used5050 ? 0.5 : 1, padding: "0 0.5rem" }}
+              >
+                <Scissors size={14} style={{ marginRight: 4 }}/> 50/50
+              </button>
+              <button 
+                className="btn btn-outline btn-sm" 
+                onClick={handleHint} 
+                disabled={usedHint || isRevealed}
+                style={{ opacity: usedHint ? 0.5 : 1, padding: "0 0.5rem" }}
+              >
+                <Lightbulb size={14} style={{ marginRight: 4 }}/> Hint
+              </button>
+            </div>
+          )}
         </div>
+
+        {showHint && !isRevealed && (
+          <div className="animate-fade-in" style={{ background: "hsla(45, 100%, 50%, 0.1)", border: "1px solid hsla(45, 100%, 50%, 0.3)", padding: "1rem", borderRadius: "8px", marginBottom: "1rem", color: "var(--foreground)" }}>
+            <strong>💡 Hint: </strong> {question.hint || "Think about the core concepts."}
+          </div>
+        )}
+
         <h2 className="quiz-question animate-fade-in" style={{ animationDelay: "100ms" }}>
           {question.question}
         </h2>
         <div className="quiz-options">
-          {question.options.map((option, index) => (
-            <div key={index} className="animate-fade-in" style={{ animationDelay: `${150 + index * 50}ms` }}>
-              <QuizOption
-                option={option}
-                label={["A", "B", "C", "D"][index]}
-                isSelected={selectedAnswer === index}
-                isCorrect={isRevealed ? (index === question.correctAnswer ? true : selectedAnswer === index ? false : null) : null}
-                isRevealed={isRevealed}
-                onClick={() => !isRevealed && setSelectedAnswer(index)}
-                disabled={isRevealed}
-              />
-            </div>
-          ))}
+          {question.options.map((option, index) => {
+            if (hiddenOptions.includes(index)) {
+              return <div key={index} style={{ opacity: 0.3, pointerEvents: "none" }} className="card"><div style={{padding: "1rem"}}>{option}</div></div>;
+            }
+            return (
+              <div key={index} className="animate-fade-in" style={{ animationDelay: `${150 + index * 50}ms` }}>
+                <QuizOption
+                  option={option}
+                  label={["A", "B", "C", "D"][index]}
+                  isSelected={selectedAnswer === index}
+                  isCorrect={isRevealed ? (index === question.correctAnswer ? true : selectedAnswer === index ? false : null) : null}
+                  isRevealed={isRevealed}
+                  onClick={() => !isRevealed && setSelectedAnswer(index)}
+                  disabled={isRevealed}
+                />
+              </div>
+            );
+          })}
         </div>
-        <div className="quiz-actions animate-fade-in" style={{ animationDelay: "400ms" }}>
+
+        {isRevealed && question.explanation && (
+          <div className="animate-fade-in" style={{ marginTop: "1rem", background: "hsla(200, 100%, 50%, 0.1)", border: "1px solid hsla(200, 100%, 50%, 0.3)", padding: "1rem", borderRadius: "8px", color: "var(--foreground)" }}>
+            <strong>🤖 AI Explanation: </strong> {question.explanation}
+          </div>
+        )}
+
+        <div className="quiz-actions animate-fade-in" style={{ animationDelay: "400ms", marginTop: "1.5rem" }}>
           {!isRevealed ? (
             <button className="btn btn-gradient btn-lg" onClick={handleSubmit} disabled={selectedAnswer === null}>
               Submit Answer
