@@ -7,6 +7,7 @@ import SubjectSelector from "@/components/SubjectSelector";
 import { ArrowRight, Clock, BookOpen, Zap, Calendar, Swords, Trophy, XCircle, Loader2, Lightbulb, Scissors, Share2, Award } from "lucide-react";
 import { cn, getApiBase } from "@/lib/utils";
 import { useSocket } from "@/contexts/SocketContext";
+import { useAuth } from "@/contexts/AuthContext";
 import TopicSelector from "@/components/TopicSelector";
 import Confetti from "../components/Confetti";
 import { soundManager } from "@/lib/soundManager";
@@ -52,6 +53,7 @@ const Quiz = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { socket } = useSocket();
+  const { user } = useAuth();
   const savedResultRef = useRef(false);
 
   // Multiplayer State
