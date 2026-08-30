@@ -23,10 +23,16 @@ const quizModes = {
 const SUBJECTS = ["Operating System", "Linux", "Computer Networks", "Data Base Management System", "Data Structures and Algorithms", "C and Pointers"];
 
 const fetchQuestionsFromAPI = async ({ subject, classLevel, questionCount, topics = [] }) => {
+  const token = localStorage.getItem("token");
   const apiBase = getApiBase();
   const topicsQuery = topics.length > 0 ? `&topics=${encodeURIComponent(topics.join(','))}` : '';
   const response = await fetch(
-    `${apiBase}/api/auth/quiz-questions?subject=${encodeURIComponent(subject)}&classLevel=${encodeURIComponent(classLevel)}&amount=${questionCount}${topicsQuery}`
+    `${apiBase}/api/auth/quiz-questions?subject=${encodeURIComponent(subject)}&classLevel=${encodeURIComponent(classLevel)}&amount=${questionCount}${topicsQuery}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    }
   );
   const data = await response.json();
   if (!response.ok) {

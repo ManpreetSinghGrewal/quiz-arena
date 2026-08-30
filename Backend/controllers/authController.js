@@ -298,12 +298,31 @@ export const saveQuizResult = async (req, res) => {
 
 export const getQuizQuestions = async (req, res) => {
   try {
-    const subject = req.query.subject || "Physics";
+    const subject = req.query.subject || "Operating System";
     const classLevel = req.query.classLevel || "10";
     const amount = req.query.amount || 5;
     const topics = req.query.topics ? req.query.topics.split(',') : [];
 
-    const questions = await generateQuestions(subject, classLevel, amount, topics);
+    const userId = req.user._id;
+    const user = await User.findById(userId);
+    
+    let difficulty = "Intermediate";
+    if (user) {
+      const accuracy = user.accuracy !== undefined ? user.accuracy : 0;
+      const totalQuizzes = user.totalQuizzes || 0;
+      
+      if (totalQuizzes > 0) {
+        if (accuracy < 50) {
+          difficulty = "Beginner";
+        } else if (accuracy >= 80) {
+          difficulty = "Advanced";
+        }
+      }
+    }
+
+    console.log(`User: ${user?.name}, Accuracy: ${user?.accuracy}%. Assigned Adaptive Difficulty: ${difficulty}`);
+
+    const questions = await generateQuestions(subject, classLevel, amount, topics, difficulty);
     res.json({ questions });
   } catch (error) {
     console.error("GET QUIZ QUESTIONS ERROR:", error);

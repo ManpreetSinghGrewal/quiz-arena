@@ -59,7 +59,7 @@ const decodeHTML = (text = "") =>
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">");
 
-const generateQuestionsWithGemini = async (subject, classLevel, amount, topics = []) => {
+const generateQuestionsWithGemini = async (subject, classLevel, amount, topics = [], difficulty = "Intermediate") => {
   try {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey || apiKey === "your_api_key_here" || apiKey === "YOUR_API_KEY") {
@@ -67,15 +67,24 @@ const generateQuestionsWithGemini = async (subject, classLevel, amount, topics =
       return null;
     }
 
-    console.log(`Generating questions for ${subject} ${topics.length > 0 ? `(Topics: ${topics.join(', ')})` : ''} using Gemini...`);
+    console.log(`Generating questions for ${subject} ${topics.length > 0 ? `(Topics: ${topics.join(', ')})` : ''} with difficulty ${difficulty} using Gemini...`);
 
     const topicConstraint = topics.length > 0 
       ? `specifically focusing on these topics: ${topics.join(', ')}` 
       : `covering general syllabus for ${subject}`;
 
+    let difficultyConstraint = "";
+    if (difficulty === "Beginner") {
+      difficultyConstraint = "The questions must focus strictly on basic terminology, simple definitions, and fundamental syntax. Options should be very distinct, and avoid complex logical puzzles or multi-step calculations.";
+    } else if (difficulty === "Advanced") {
+      difficultyConstraint = "The questions must test highly advanced concepts, pointer arithmetic edge-cases, multi-threaded CPU states, concurrency conditions, deep database normalization/indexing tradeoffs, complex data structure dry-runs, or optimization tradeoffs. They should require deep technical reasoning.";
+    } else {
+      difficultyConstraint = "The questions must test intermediate concepts, standard code dry-runs, typical logical flow, and basic application design principles.";
+    }
+
     const prompt = `Generate ${amount} multiple choice questions for the Computer Science subject: "${subject}" ${topicConstraint}. 
     IMPORTANT: The questions MUST be strictly about Computer Science / Information Technology related to "${subject}". DO NOT include any Physics, Chemistry, Biology, or general Science questions.
-    Assume the difficulty is suitable for a university or high school computer science student (equivalent to level ${classLevel}).
+    Assume the difficulty matches this criteria: ${difficultyConstraint}
     Return the response ONLY as a JSON array of objects. 
     Each object must have the following structure:
     {
@@ -112,11 +121,11 @@ const generateQuestionsWithGemini = async (subject, classLevel, amount, topics =
   }
 };
 
-export const generateQuestions = async (subject = "Operating System", classLevel = "10", amount = 5, topics = []) => {
+export const generateQuestions = async (subject = "Operating System", classLevel = "10", amount = 5, topics = [], difficulty = "Intermediate") => {
   const nAmount = Number(amount) || 5;
 
   // Try Gemini First
-  const geminiQuestions = await generateQuestionsWithGemini(subject, classLevel, nAmount, topics);
+  const geminiQuestions = await generateQuestionsWithGemini(subject, classLevel, nAmount, topics, difficulty);
   if (geminiQuestions && geminiQuestions.length >= nAmount) {
     console.log(`Successfully generated ${geminiQuestions.length} questions using Gemini for ${subject}`);
     return geminiQuestions;
@@ -125,13 +134,13 @@ export const generateQuestions = async (subject = "Operating System", classLevel
   // Fallback to OpenTDB (Category 18 is Science: Computers)
   console.log(`Falling back to OpenTDB for ${subject} questions...`);
   const category = 18; 
-  const difficulty = "medium";
+  const opentdbDifficulty = "medium";
   const fetchAmount = Math.min(nAmount * 4, 50);
 
   let remoteQuestions = [];
   try {
     const response = await fetch(
-      `https://opentdb.com/api.php?amount=${fetchAmount}&category=${category}&difficulty=${difficulty}&type=multiple`
+      `https://opentdb.com/api.php?amount=${fetchAmount}&category=${category}&difficulty=${opentdbDifficulty}&type=multiple`
     );
     const data = await response.json().catch(() => ({}));
     remoteQuestions = Array.isArray(data.results) ? data.results : [];

@@ -1,10 +1,12 @@
 import React from 'react';
 
 const TOPICS = {
-  Physics: ["Mechanics", "Thermodynamics", "Electromagnetism", "Optics", "Modern Physics", "Waves"],
-  Chemistry: ["Organic Chemistry", "Inorganic Chemistry", "Physical Chemistry", "Atomic Structure", "Chemical Bonding", "Equilibrium"],
-  Biology: ["Cell Biology", "Genetics", "Evolution", "Human Physiology", "Plant Physiology", "Ecology"],
-  Maths: ["Algebra", "Calculus", "Trigonometry", "Geometry", "Probability & Statistics", "Number Theory"]
+  "Operating System": ["Kernel & Shell", "Process & Thread", "Memory Management", "Scheduling Algorithms", "Deadlocks & Semaphores", "File Systems"],
+  "Linux": ["Basic Commands", "File Permissions", "Shell Scripting", "System Directories", "Processes & Services", "Package Management"],
+  "Computer Networks": ["OSI & TCP/IP Models", "IP Addressing & Subnetting", "Routing & Switching Protocols", "TCP/UDP Handshakes", "DNS & HTTP/HTTPS", "Network Security & Firewalls"],
+  "Data Base Management System": ["SQL Queries & Joins", "ACID Properties", "Normalization (1NF-BCNF)", "NoSQL Databases", "Indexing & Transactions", "ER Diagrams"],
+  "Data Structures and Algorithms": ["Arrays & Linked Lists", "Stacks & Queues", "Trees & BSTs", "Sorting & Searching", "Graph Algorithms", "Time & Space Complexity"],
+  "C and Pointers": ["Pointer Basics & Syntax", "Memory Allocation (malloc/free)", "Dangling & Void Pointers", "Structs & Unions", "File I/O", "Preprocessors & Macros"]
 };
 
 const TopicSelector = ({ subject, selectedTopics, onToggleTopic }) => {

@@ -16,14 +16,15 @@ import {
 } from '../controllers/authController.js';
 import authMiddleware from '../middlewares/authMiddleware.js';
 import requireDb from "../middlewares/requireDb.js";
+import { authLimiter, quizQuestionsLimiter } from '../middlewares/rateLimiter.js';
 
 
 const router = express.Router();
 
-router.post('/register', requireDb, register);
-router.post('/login', requireDb, login);
-router.get('/quiz-questions', getQuizQuestions);
-router.post("/forgot-password", requireDb, requestPasswordReset);
+router.post('/register', requireDb, authLimiter, register);
+router.post('/login', requireDb, authLimiter, login);
+router.get('/quiz-questions', requireDb, authMiddleware, quizQuestionsLimiter, getQuizQuestions);
+router.post("/forgot-password", requireDb, authLimiter, requestPasswordReset);
 router.post("/reset-password", requireDb, resetPasswordWithCode);
 
 router.get('/profile', requireDb, authMiddleware, getProfile);
