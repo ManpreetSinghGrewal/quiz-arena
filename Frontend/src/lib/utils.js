@@ -7,8 +7,11 @@ export function getApiBase() {
   if (configured) return configured.replace(/\/$/, "");
 
   if (typeof window !== "undefined") {
+    if (window.location.port === "8085") {
+      return "";
+    }
     if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
-      return "http://localhost:8085";
+      return `http://${window.location.hostname}:8085`;
     }
     return window.location.origin;
   }

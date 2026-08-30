@@ -32,16 +32,18 @@ const Leaderboard = () => {
   const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [userRank, setUserRank] = useState<UserRank>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    fetchLeaderboard();
-  }, []);
+    fetchLeaderboard(activeTab);
+  }, [activeTab]);
 
-  const fetchLeaderboard = async () => {
+  const fetchLeaderboard = async (filterType = "alltime") => {
     try {
       setLoading(true);
       const apiBase = getApiBase();
-      const response = await fetch(`${apiBase}/api/auth/leaderboard`);
+      const apiFilter = filterType === "alltime" ? "all-time" : filterType;
+      const response = await fetch(`${apiBase}/api/auth/leaderboard?filter=${apiFilter}`);
       const data = await response.json();
       setLeaderboardData(data);
 
@@ -60,9 +62,11 @@ const Leaderboard = () => {
           setUserRank({
             rank: rank + 1,
             name: profileData.name,
-            score: profileData.totalScore,
+            score: filterType === "alltime" ? profileData.totalScore : (data[rank]?.score || 0),
             avatar: profileData.name.charAt(0),
           });
+        } else {
+          setUserRank(null);
         }
       }
     } catch (error) {
@@ -72,7 +76,9 @@ const Leaderboard = () => {
     }
   };
 
-  const currentData = leaderboardData;
+  const filteredData = leaderboardData.filter(player => 
+    player.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const TopThree = ({ data }: { data: LeaderboardEntry[] }) => (
     <div className="podium">
@@ -132,37 +138,66 @@ const Leaderboard = () => {
         {/* Tabs */}
         <div className="tabs-list">
           {[
-            { key: "alltime", label: "Top Players" },
+            { key: "alltime", label: "All-Time" },
+            { key: "weekly", label: "Weekly" },
+            { key: "monthly", label: "Monthly" },
           ].map((tab) => (
             <button
               key={tab.key}
               className={`tab-trigger ${activeTab === tab.key ? "active" : ""}`}
-              onClick={() => setActiveTab(tab.key)}
+              onClick={() => {
+                setActiveTab(tab.key);
+                setSearchQuery("");
+              }}
             >
               {tab.label}
             </button>
           ))}
         </div>
 
+        {/* Search Bar */}
+        <div style={{ marginBottom: "1.5rem" }}>
+          <input
+            type="text"
+            placeholder="🔍 Search players..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="input"
+            style={{ height: "2.75rem" }}
+          />
+        </div>
+
         {loading ? (
           <div style={{ textAlign: "center", padding: "2rem", color: "var(--muted-foreground)" }}>
             <p>Loading leaderboard...</p>
           </div>
-        ) : currentData.length === 0 ? (
+        ) : filteredData.length === 0 ? (
           <div style={{ textAlign: "center", padding: "2rem", color: "var(--muted-foreground)" }}>
-            <p>No players yet. Be the first to take a quiz!</p>
+            <p>No players found.</p>
           </div>
         ) : (
           <>
-            <TopThree data={currentData} />
+            {searchQuery === "" && filteredData.length >= 3 ? (
+              <>
+                <TopThree data={filteredData} />
 
-            <div className="card glow-border" style={{ padding: "1rem" }}>
-              {currentData.slice(3).map((player, index) => (
-                <div key={player.rank} className="animate-fade-in" style={{ animationDelay: `${(index + 3) * 50}ms` }}>
-                  <LeaderboardItem {...player} />
+                <div className="card glow-border" style={{ padding: "1rem" }}>
+                  {filteredData.slice(3).map((player, index) => (
+                    <div key={player.rank} className="animate-fade-in" style={{ animationDelay: `${(index + 3) * 50}ms` }}>
+                      <LeaderboardItem {...player} />
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </>
+            ) : (
+              <div className="card glow-border" style={{ padding: "1rem" }}>
+                {filteredData.map((player, index) => (
+                  <div key={player.rank || index} className="animate-fade-in" style={{ animationDelay: `${index * 30}ms` }}>
+                    <LeaderboardItem {...player} rank={searchQuery !== "" ? index + 1 : player.rank} />
+                  </div>
+                ))}
+              </div>
+            )}
           </>
         )}
 

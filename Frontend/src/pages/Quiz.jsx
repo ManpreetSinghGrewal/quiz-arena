@@ -4,10 +4,12 @@ import ProgressBar from "@/components/ProgressBar";
 import QuizOption from "@/components/QuizOption";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import SubjectSelector from "@/components/SubjectSelector";
-import { ArrowRight, Clock, BookOpen, Zap, Calendar, Swords, Trophy, XCircle, Loader2, Lightbulb, Scissors, Share2 } from "lucide-react";
+import { ArrowRight, Clock, BookOpen, Zap, Calendar, Swords, Trophy, XCircle, Loader2, Lightbulb, Scissors, Share2, Award } from "lucide-react";
 import { cn, getApiBase } from "@/lib/utils";
 import { useSocket } from "@/contexts/SocketContext";
 import TopicSelector from "@/components/TopicSelector";
+import Confetti from "../components/Confetti";
+import { soundManager } from "@/lib/soundManager";
 
 const quizModes = {
   normal: { title: "Normal Quiz", icon: BookOpen, iconBg: "hsla(250, 90%, 65%, 0.1)", iconColor: "var(--primary)", timePerQuestion: 30 },
@@ -81,6 +83,7 @@ const Quiz = () => {
   const [showHint, setShowHint] = useState(false);
   const [currentStreak, setCurrentStreak] = useState(0);
   const [showStreakPopup, setShowStreakPopup] = useState(false);
+  const [earnedBadges, setEarnedBadges] = useState([]);
 
   const quizConfig = quizModes[mode] || quizModes.normal;
   const question = questions[currentQuestion];
@@ -99,8 +102,10 @@ const Quiz = () => {
   }, [isMultiplayer, matchData, mode, navigate]);
 
   // Socket listeners for Multiplayer
+  const [botFinished, setBotFinished] = useState(false);
+
   useEffect(() => {
-    if (!isMultiplayer || !socket) return;
+    if (!isMultiplayer || !socket || matchData?.isBot) return;
 
     const handleOpponentProgress = (data) => setOpponentProgress(data);
     const handleMatchResult = (data) => {
@@ -121,10 +126,63 @@ const Quiz = () => {
       socket.off("match:result", handleMatchResult);
       socket.off("match:opponent_disconnected", handleOpponentDisconnected);
     };
-  }, [isMultiplayer, socket]);
+  }, [isMultiplayer, socket, matchData]);
+
+  // Bot simulation progress
+  useEffect(() => {
+    if (!isMultiplayer || !matchData?.isBot || isFinished) return;
+
+    let botInterval;
+    
+    const startBot = () => {
+      botInterval = setInterval(() => {
+        setOpponentProgress((prev) => {
+          const nextIndex = prev.questionIndex + 1;
+          const gotCorrect = Math.random() > 0.4;
+          const pointGain = gotCorrect ? Math.round(15 + Math.random() * 5) : 0;
+          
+          if (nextIndex >= totalQuestions) {
+            clearInterval(botInterval);
+            setBotFinished(true);
+            return {
+              score: prev.score + pointGain,
+              questionIndex: totalQuestions
+            };
+          }
+          
+          return {
+            score: prev.score + pointGain,
+            questionIndex: nextIndex
+          };
+        });
+      }, 7000 + Math.random() * 3000);
+    };
+
+    startBot();
+
+    return () => {
+      if (botInterval) clearInterval(botInterval);
+    };
+  }, [isMultiplayer, matchData, isFinished, totalQuestions]);
+
+  // Check battle end for Bot Match
+  useEffect(() => {
+    if (!isMultiplayer || !matchData?.isBot || !isFinished || battleResult) return;
+    
+    if (botFinished) {
+      const playerWon = score > opponentProgress.score;
+      setBattleResult({
+        winnerId: playerWon ? "player" : score === opponentProgress.score ? null : "bot",
+        players: {
+          "player": { name: user?.name || "You", score: score },
+          "bot": { name: matchData.opponent.name, score: opponentProgress.score }
+        }
+      });
+    }
+  }, [isMultiplayer, matchData, isFinished, botFinished, score, opponentProgress.score, user, battleResult]);
 
   useEffect(() => {
-    if (!isFinished || savedResultRef.current || isMultiplayer) return;
+    if (!isFinished || savedResultRef.current || (isMultiplayer && !matchData?.isBot)) return;
 
     const saveResult = async () => {
       const token = localStorage.getItem("token");
@@ -134,7 +192,7 @@ const Quiz = () => {
 
       try {
         const apiBase = getApiBase();
-        await fetch(`${apiBase}/api/auth/quiz-result`, {
+        const response = await fetch(`${apiBase}/api/auth/quiz-result`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -160,6 +218,11 @@ const Quiz = () => {
             clientLocalDate: new Date().toLocaleDateString("en-CA"),
           }),
         });
+        
+        const resData = await response.json();
+        if (response.ok && resData.earnedBadges && resData.earnedBadges.length > 0) {
+          setEarnedBadges(resData.earnedBadges);
+        }
       } catch (error) {
         console.error("Error saving quiz result:", error);
       }
@@ -177,11 +240,20 @@ const Quiz = () => {
           handleSubmit();
           return quizConfig.timePerQuestion;
         }
+        if (prev <= 6) {
+          soundManager.playTick();
+        }
         return prev - 1;
       });
     }, 1000);
     return () => clearInterval(timer);
   }, [currentQuestion, isRevealed, isFinished, hasStarted, question, quizConfig.timePerQuestion]);
+
+  useEffect(() => {
+    if (isFinished) {
+      soundManager.playSuccess();
+    }
+  }, [isFinished]);
 
   const startQuiz = async () => {
     if (mode !== "mistakes" && !selectedSubject) {
@@ -253,6 +325,7 @@ const Quiz = () => {
 
     let points = 0;
     if (isCorrect) {
+      soundManager.playCorrect();
       let basePoints = 14;
       if (mode === "daily") basePoints = 12;
       else if (mode === "speed") basePoints = 10;
@@ -270,13 +343,14 @@ const Quiz = () => {
         setTimeout(() => setShowStreakPopup(false), 2000);
       }
     } else {
+      soundManager.playIncorrect();
       setCurrentStreak(0);
     }
 
     setAnswers((prev) => [...prev, { correct: isCorrect, time: timeTaken, selectedIdx: selectedAnswer }]);
     setIsRevealed(true);
 
-    if (isMultiplayer && socket && matchData?.roomId) {
+    if (isMultiplayer && socket && matchData?.roomId && !matchData?.isBot) {
       socket.emit("quiz:submit_answer", {
         roomId: matchData.roomId,
         score: score + points,
@@ -287,7 +361,7 @@ const Quiz = () => {
 
   const handleNext = () => {
     if (currentQuestion + 1 >= totalQuestions) {
-      if (isMultiplayer && socket && matchData?.roomId) {
+      if (isMultiplayer && socket && matchData?.roomId && !matchData?.isBot) {
         socket.emit("quiz:finish", {
           roomId: matchData.roomId,
           score,
@@ -348,13 +422,14 @@ Can you beat my score? https://quiz-arena-lake.vercel.app/`;
 
   if (isFinished) {
     if (isMultiplayer && battleResult && matchData) {
-      const isWinner = battleResult.winnerId === socket?.id;
+      const isWinner = battleResult.winnerId === (socket?.id || "player");
       const isDraw = battleResult.winnerId === null;
-      const opponentId = Object.keys(battleResult.players).find(id => id !== socket?.id);
+      const opponentId = Object.keys(battleResult.players).find(id => id !== (socket?.id || "player"));
       const opponentScore = opponentId ? battleResult.players[opponentId].score : 0;
       
       return (
         <div className="page-center">
+          {isWinner && <Confetti />}
           <AnimatedBackground variant="gradient" />
           <div className="quiz-results animate-scale-in">
             <div className={cn("card quiz-results-card glow-border", isWinner ? "winner" : "loser")}>
@@ -403,15 +478,43 @@ Can you beat my score? https://quiz-arena-lake.vercel.app/`;
     const correctAnswers = answers.filter((a) => a.correct).length;
     const accuracy = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
     const avgTime = answers.length ? Math.round(answers.reduce((sum, a) => sum + a.time, 0) / answers.length) : 0;
+    const showConfetti = accuracy >= 70;
 
     return (
       <div className="page-center">
+        {showConfetti && <Confetti />}
         <AnimatedBackground variant="gradient" />
         <div className="quiz-results animate-scale-in">
           <div className="card quiz-results-card glow-border">
             <div className="quiz-results-icon gradient-primary">🎉</div>
             <h1>Quiz Complete!</h1>
             <p className="quiz-results-subtitle">{mode === "mistakes" ? "Mistakes Review" : `Subject: ${selectedSubject}`}</p>
+            
+            {earnedBadges.length > 0 && (
+              <div 
+                className="animate-fade-in" 
+                style={{ 
+                  margin: "1rem 0", 
+                  padding: "1rem", 
+                  background: "rgba(234, 179, 8, 0.1)", 
+                  border: "1px solid rgba(234, 179, 8, 0.3)", 
+                  borderRadius: "var(--radius)",
+                  textAlign: "center"
+                }}
+              >
+                <p style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem", fontWeight: 700, color: "var(--warning)", fontSize: "0.95rem" }}>
+                  <Award size={18} /> New Achievement Unlocked!
+                </p>
+                <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "0.5rem", marginTop: "0.5rem" }}>
+                  {earnedBadges.map((badge, idx) => (
+                    <span key={idx} className="badge gradient-primary" style={{ fontSize: "0.8rem", padding: "0.3rem 0.6rem", borderRadius: "20px", color: "#fff", fontWeight: "600" }}>
+                      🏆 {badge}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="quiz-results-stats">
               <div className="quiz-results-stat">
                 <p className="quiz-results-stat-value">{score}</p>

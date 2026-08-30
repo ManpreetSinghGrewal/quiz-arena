@@ -661,6 +661,20 @@ const Profile = () => {
                               );
                             })}
                           </div>
+                          {q.explanation && (
+                            <div style={{ 
+                              marginTop: "1rem", 
+                              padding: "0.75rem 1rem", 
+                              background: "rgba(var(--primary-rgb), 0.05)", 
+                              borderLeft: "3px solid var(--primary)", 
+                              borderRadius: "0 var(--radius) var(--radius) 0", 
+                              fontSize: "0.85rem",
+                              lineHeight: "1.5",
+                              color: "var(--foreground)" 
+                            }}>
+                              <strong>🤖 AI Explanation:</strong> {q.explanation}
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>

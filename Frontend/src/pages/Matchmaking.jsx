@@ -5,12 +5,21 @@ import { Swords, Users, ArrowLeft, Loader2, Check } from "lucide-react";
 import { useSocket } from "@/contexts/SocketContext";
 import { useAuth } from "@/contexts/AuthContext";
 
+const SEARCH_MESSAGES = [
+  "Finding a worthy challenger...",
+  "Contacting game server...",
+  "Analyzing candidate pools...",
+  "Preparing battle deck...",
+  "Synchronizing match rooms...",
+];
+
 const Matchmaking = () => {
   const navigate = useNavigate();
   const { socket } = useSocket();
   const { user } = useAuth();
   const [status, setStatus] = useState("idle");
   const [searchTime, setSearchTime] = useState(0);
+  const [msgIndex, setMsgIndex] = useState(0);
   const [opponent, setOpponent] = useState(null);
   const [countdown, setCountdown] = useState(3);
   const matchDataRef = useRef(null);
@@ -34,7 +43,13 @@ const Matchmaking = () => {
 
   useEffect(() => {
     if (status !== "searching") return;
+    setSearchTime(0);
+    setMsgIndex(0);
+
     const timer = setInterval(() => setSearchTime((prev) => prev + 1), 1000);
+    const msgTimer = setInterval(() => {
+      setMsgIndex((prev) => (prev + 1) % SEARCH_MESSAGES.length);
+    }, 3000);
     
     socket.emit("matchmaking:join", {
       name: user?.name || "Anonymous",
@@ -44,6 +59,7 @@ const Matchmaking = () => {
 
     return () => {
       clearInterval(timer);
+      clearInterval(msgTimer);
     };
   }, [status, socket, user]);
 
@@ -69,9 +85,52 @@ const Matchmaking = () => {
   }, [status, navigate]);
 
   const handleCancel = () => {
-    socket.emit("matchmaking:cancel");
+    if (socket) {
+      socket.emit("matchmaking:cancel");
+    }
     setStatus("idle");
     setSearchTime(0);
+  };
+
+  const startBotMatch = async () => {
+    try {
+      setStatus("loading_bot");
+      if (socket) {
+        socket.emit("matchmaking:cancel");
+      }
+      const apiBase = getApiBase();
+      const randomSubject = ["Operating System", "Computer Networks", "Data Base Management System", "Data Structures and Algorithms"][Math.floor(Math.random() * 4)];
+      
+      const response = await fetch(`${apiBase}/api/auth/quiz-questions?subject=${encodeURIComponent(randomSubject)}&amount=10`);
+      const data = await response.json();
+      
+      if (response.ok && data.questions) {
+        const botMatchData = {
+          roomId: "bot_match_" + Date.now(),
+          subject: randomSubject,
+          timePerQuestion: 20,
+          questions: data.questions,
+          isBot: true,
+          opponent: {
+            name: "TuringBot 🤖",
+            level: 5,
+            avatar: Math.floor(Math.random() * 12)
+          }
+        };
+        
+        matchDataRef.current = botMatchData;
+        setOpponent(botMatchData.opponent);
+        setCountdown(3);
+        setStatus("found");
+      } else {
+        alert("Failed to initialize Practice Bot.");
+        setStatus("idle");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error initializing Practice Bot.");
+      setStatus("idle");
+    }
   };
 
   const formatTime = (seconds) => {
@@ -112,20 +171,65 @@ const Matchmaking = () => {
           )}
 
           {status === "searching" && (
-            <div className="animate-fade-in">
-              <div className="matchmaking-spinner">
-                <div className="matchmaking-spinner-ring" />
-                <div className="matchmaking-spinner-active" />
-                <div className="matchmaking-spinner-inner">
-                  <Loader2 />
+            <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+              {/* Radar Sonar Pulse Animation */}
+              <div style={{ 
+                position: "relative", 
+                width: "140px", 
+                height: "140px", 
+                margin: "0 auto 2rem", 
+                display: "flex", 
+                alignItems: "center", 
+                justifyContent: "center" 
+              }}>
+                <div className="animate-ping" style={{ position: "absolute", width: "100%", height: "100%", borderRadius: "50%", background: "rgba(234, 179, 8, 0.15)", animationDuration: "3s" }} />
+                <div className="animate-ping" style={{ position: "absolute", width: "80%", height: "80%", borderRadius: "50%", background: "rgba(234, 179, 8, 0.2)", animationDuration: "2s" }} />
+                <div style={{ 
+                  zIndex: 10, 
+                  width: "70px", 
+                  height: "70px", 
+                  borderRadius: "50%", 
+                  background: "var(--accent)", 
+                  display: "flex", 
+                  alignItems: "center", 
+                  justifyContent: "center", 
+                  color: "var(--accent-foreground)",
+                  boxShadow: "var(--shadow-glow-accent)"
+                }}>
+                  <Swords size={28} />
                 </div>
               </div>
+              
               <h2 className="matchmaking-title">Searching for Opponent...</h2>
-              <p className="matchmaking-subtitle" style={{ marginBottom: "0.5rem" }}>Finding a worthy challenger</p>
-              <p className="matchmaking-time">{formatTime(searchTime)}</p>
-              <button className="btn btn-outline" style={{ marginTop: "2rem" }} onClick={handleCancel}>
-                Cancel
-              </button>
+              <p className="matchmaking-subtitle" style={{ minHeight: "1.5rem", color: "var(--muted-foreground)" }}>
+                {SEARCH_MESSAGES[msgIndex]}
+              </p>
+              <p className="matchmaking-time" style={{ fontSize: "1.5rem", fontWeight: 750, marginTop: "1rem", color: "var(--primary)" }}>
+                {formatTime(searchTime)}
+              </p>
+              
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", width: "100%", alignItems: "center", marginTop: "2rem" }}>
+                {searchTime >= 10 && (
+                  <button 
+                    className="btn btn-gradient animate-fade-in" 
+                    style={{ width: "100%", maxWidth: "260px" }} 
+                    onClick={startBotMatch}
+                  >
+                    🤖 Practice against Bot
+                  </button>
+                )}
+                <button className="btn btn-outline" style={{ width: "100%", maxWidth: "260px" }} onClick={handleCancel}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          {status === "loading_bot" && (
+            <div className="animate-fade-in" style={{ padding: "3rem", textAlign: "center" }}>
+              <Loader2 className="animate-spin" style={{ margin: "0 auto 1.5rem", width: "3.5rem", height: "3.5rem", color: "var(--primary)" }} />
+              <h2 className="matchmaking-title">Deploying TuringBot 🤖...</h2>
+              <p style={{ color: "var(--muted-foreground)" }}>Generating computer science questions and initializing sandbox battle arena...</p>
             </div>
           )}
 

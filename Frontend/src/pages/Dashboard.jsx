@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSocket } from "@/contexts/SocketContext";
 import { getApiBase } from "@/lib/utils";
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell } from "recharts";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -23,6 +24,7 @@ const Dashboard = () => {
     accuracy: 0,
   });
   const [recentQuizzes, setRecentQuizzes] = useState([]);
+  const [allQuizzes, setAllQuizzes] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [globalActivity, setGlobalActivity] = useState([]);
 
@@ -110,6 +112,7 @@ const Dashboard = () => {
       });
       const data = await response.json();
       if (response.ok) {
+        setAllQuizzes(data);
         setRecentQuizzes(data.slice(0, 3));
       }
     } catch (error) {
@@ -126,12 +129,46 @@ const Dashboard = () => {
     { label: "Win Rate", value: `${profileStats.accuracy}%`, icon: Award },
   ];
 
+  const getSubjectMastery = () => {
+    const subjectData = {
+      "Operating System": { correct: 0, total: 0 },
+      "Linux": { correct: 0, total: 0 },
+      "Computer Networks": { correct: 0, total: 0 },
+      "Data Base Management System": { correct: 0, total: 0 },
+      "Data Structures and Algorithms": { correct: 0, total: 0 },
+      "C and Pointers": { correct: 0, total: 0 },
+    };
+
+    allQuizzes.forEach((quiz) => {
+      const sub = quiz.subject;
+      if (subjectData[sub]) {
+        subjectData[sub].correct += quiz.correctAnswers || 0;
+        subjectData[sub].total += quiz.totalQuestions || 0;
+      }
+    });
+
+    return Object.keys(subjectData).map((key) => {
+      const item = subjectData[key];
+      const percent = item.total > 0 ? Math.round((item.correct / item.total) * 100) : 0;
+      let shortName = key;
+      if (key === "Data Base Management System") shortName = "DBMS";
+      if (key === "Data Structures and Algorithms") shortName = "DSA";
+      if (key === "Computer Networks") shortName = "Networks";
+      if (key === "Operating System") shortName = "OS";
+      return {
+        subject: shortName,
+        mastery: percent,
+      };
+    });
+  };
+
   const gameModes = [
     { title: "Normal Quiz", description: "Classic quiz with Beginner, Intermediate, and Advanced levels. Perfect for practice!", icon: BookOpen, variant: "normal", path: "/quiz/normal" },
     { title: "Review Mistakes", description: "Review questions you've answered incorrectly in the past to improve your knowledge.", icon: BookOpen, variant: "battle", badge: "NEW", path: "/quiz/mistakes" },
     { title: "Daily Challenge", description: "One attempt per day. Test your knowledge and compete for the daily crown!", icon: Calendar, variant: "daily", badge: "HOT", path: "/quiz/daily" },
     { title: "Battle Mode", description: "Real-time multiplayer quiz battles. Challenge friends or random opponents!", icon: Swords, variant: "battle", path: "/matchmaking" },
     { title: "Speed Quiz", description: "Race against the clock! Answer as many questions as you can before time runs out.", icon: Zap, variant: "speed", path: "/quiz/speed" },
+    { title: "Study Flashcards", description: "Flip interactive flashcards to review key terms and computer science concepts.", icon: BookOpen, variant: "normal", badge: "STUDY", path: "/flashcards" },
   ];
 
   const displayName = user?.name?.split(" ")[0] || "Player";
@@ -164,6 +201,47 @@ const Dashboard = () => {
                   <GameModeCard {...mode} onClick={() => navigate(mode.path)} />
                 </div>
               ))}
+            </div>
+
+            <div style={{ marginTop: "2.5rem" }}>
+              <h2 className="section-heading">Subject Mastery</h2>
+              <div className="card glow-border" style={{ padding: "1.5rem" }}>
+                {allQuizzes.length === 0 ? (
+                  <p style={{ textAlign: "center", color: "var(--muted-foreground)", padding: "2rem" }}>
+                    Play some quizzes to see your subject analytics!
+                  </p>
+                ) : (
+                  <div style={{ height: "260px", width: "100%" }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={getSubjectMastery()}
+                        layout="vertical"
+                        margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                      >
+                        <XAxis type="number" domain={[0, 100]} stroke="var(--muted-foreground)" />
+                        <YAxis dataKey="subject" type="category" stroke="var(--muted-foreground)" width={80} />
+                        <Tooltip 
+                          contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "var(--radius)" }}
+                          formatter={(value) => [`${value}%`, "Accuracy"]}
+                        />
+                        <Bar dataKey="mastery" radius={[0, 4, 4, 0]} barSize={20}>
+                          {getSubjectMastery().map((entry, index) => {
+                            const colors = [
+                              "var(--game-normal)",
+                              "var(--game-daily)",
+                              "var(--game-battle)",
+                              "var(--game-speed)",
+                              "hsl(200, 80%, 50%)",
+                              "hsl(45, 95%, 55%)"
+                            ];
+                            return <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />;
+                          })}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </div>
             </div>
 
             <div style={{ marginTop: "2.5rem" }}>

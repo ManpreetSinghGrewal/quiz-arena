@@ -13,6 +13,7 @@ import Quiz from "./pages/Quiz";
 import Matchmaking from "./pages/Matchmaking";
 import Leaderboard from "./pages/Leaderboard";
 import NotFound from "./pages/NotFound";
+import Flashcards from "./pages/Flashcards";
 
 import { ThemeProvider } from "next-themes";
 
@@ -33,6 +34,7 @@ const App = () => (
               <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
               <Route path="/quiz/:mode" element={<ProtectedRoute><Quiz /></ProtectedRoute>} />
               <Route path="/matchmaking" element={<ProtectedRoute><Matchmaking /></ProtectedRoute>} />
+              <Route path="/flashcards" element={<ProtectedRoute><Flashcards /></ProtectedRoute>} />
               <Route path="/leaderboard" element={<Leaderboard />} />
               <Route path="*" element={<NotFound />} />
             </Routes>

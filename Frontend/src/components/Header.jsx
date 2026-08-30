@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from "react";
-import { BrainCircuit, LogOut, Settings, User, Trophy, Users, Moon, Sun } from "lucide-react";
+import { BrainCircuit, LogOut, Settings, User, Trophy, Users, Moon, Sun, Volume2, VolumeX } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSocket } from "@/contexts/SocketContext";
 import { useTheme } from "next-themes";
+import { soundManager } from "@/lib/soundManager";
 
 const AVATARS = [
   { emoji: "🧠", bg: "hsl(250, 90%, 65%)" },
@@ -25,6 +26,7 @@ const Header = () => {
   const { user, logout } = useAuth();
   const { onlineCount } = useSocket();
   const { theme, setTheme } = useTheme();
+  const [soundEnabled, setSoundEnabled] = useState(soundManager.enabled);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -75,6 +77,17 @@ const Header = () => {
                 title="Toggle Theme"
               >
                 {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+              </button>
+
+              <button
+                className="btn btn-ghost btn-icon"
+                onClick={() => {
+                  const newState = soundManager.toggle();
+                  setSoundEnabled(newState);
+                }}
+                title={soundEnabled ? "Mute Sounds" : "Enable Sounds"}
+              >
+                {soundEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
               </button>
 
               <div className="dropdown-wrapper" ref={dropdownRef}>

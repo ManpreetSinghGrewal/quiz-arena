@@ -373,6 +373,47 @@ export const changePassword = async (req, res) => {
 export const getLeaderboard = async (req, res) => {
   try {
     const limit = req.query.limit ? parseInt(req.query.limit, 10) : 10;
+    const filter = req.query.filter || 'all-time';
+
+    if (filter === 'weekly' || filter === 'monthly') {
+      const days = filter === 'weekly' ? 7 : 30;
+      const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+      const results = await QuizResult.aggregate([
+        { $match: { createdAt: { $gte: cutoff } } },
+        {
+          $group: {
+            _id: '$user',
+            totalScore: { $sum: '$score' },
+            totalQuizzes: { $sum: 1 },
+            correctAnswers: { $sum: '$correctAnswers' },
+            totalQCount: { $sum: '$totalQuestions' }
+          }
+        },
+        { $sort: { totalScore: -1 } },
+        { $limit: limit }
+      ]);
+
+      const leaderboard = [];
+      for (let i = 0; i < results.length; i++) {
+        const item = results[i];
+        const user = await User.findById(item._id).select("name avatar");
+        if (user) {
+          const accuracy = item.totalQCount > 0 ? Math.round((item.correctAnswers / item.totalQCount) * 100) : 0;
+          leaderboard.push({
+            rank: i + 1,
+            name: user.name,
+            score: item.totalScore,
+            quizzes: item.totalQuizzes,
+            correctAnswers: item.correctAnswers,
+            accuracy,
+            avatar: user.avatar || 0,
+          });
+        }
+      }
+      return res.json(leaderboard);
+    }
+
     const users = await User.find()
       .sort({ totalScore: -1 })
       .limit(limit)
