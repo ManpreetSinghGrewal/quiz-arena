@@ -71,7 +71,7 @@ const Quiz = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState("");
   const [hasStarted, setHasStarted] = useState(false);
-  const [selectedSubject, setSelectedSubject] = useState("");
+  const [selectedSubject, setSelectedSubject] = useState(SUBJECTS[0]);
   const [selectedTopics, setSelectedTopics] = useState([]);
   const [classLevel, setClassLevel] = useState("10");
   const [questionCount, setQuestionCount] = useState(10);
@@ -288,7 +288,7 @@ const Quiz = () => {
       }
       
       if (!fetchedQuestions.length) {
-        setLoadError("No questions found for selected options");
+        setLoadError(mode === "mistakes" ? "No recorded mistakes found yet! Play a Normal or Speed Quiz first to practice questions and build your review list." : "No questions found for the selected options.");
         return;
       }
       setQuestions(fetchedQuestions);
