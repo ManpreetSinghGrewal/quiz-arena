@@ -35,7 +35,7 @@ const handleSubmit = async (e) => {
       setError(response.message || "Login failed");
     }
   } catch (err) {
-    setError("Cannot connect to server. Make sure the backend is running on port 5000.");
+    setError("Cannot connect to server. Make sure the backend is running on port 8085.");
   } finally {
     setIsLoading(false);
   }
