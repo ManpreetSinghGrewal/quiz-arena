@@ -10,6 +10,8 @@ import { initSocket } from './services/socketService.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+import fs from 'fs';
+
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
@@ -36,20 +38,31 @@ connectDB();
 // Initialize Sockets
 initSocket(io);
 
+// Health check route for Render
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok', uptime: process.uptime() });
+});
+
 // API Routes
 app.use('/api/auth', authRoutes);
 
-// Serve Frontend Static Files
+// Serve Frontend Static Files if built/available
 const frontendPath = path.join(__dirname, '../Frontend/dist');
-app.use(express.static(frontendPath));
+const indexPath = path.join(frontendPath, 'index.html');
 
-// Handle SPA routing (skip API routes)
-app.use((req, res, next) => {
-  if (req.path.startsWith('/api/')) {
-    return res.status(404).json({ message: 'API route not found' });
-  }
-  res.sendFile(path.join(frontendPath, 'index.html'));
-});
+if (fs.existsSync(indexPath)) {
+  app.use(express.static(frontendPath));
+  app.use((req, res, next) => {
+    if (req.path.startsWith('/api/')) {
+      return res.status(404).json({ message: 'API route not found' });
+    }
+    res.sendFile(indexPath);
+  });
+} else {
+  app.get('/', (req, res) => {
+    res.status(200).json({ status: 'ok', message: 'QuizArena Backend API is running' });
+  });
+}
 
 httpServer.listen(PORT, '0.0.0.0', () => {
   console.log(`Unified server running on port ${PORT}`);
