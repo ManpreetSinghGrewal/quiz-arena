@@ -1,0 +1,128 @@
+import nodemailer from "nodemailer";
+import dotenv from "dotenv";
+
+dotenv.config();
+
+const createTransporter = () => {
+  const host = process.env.EMAIL_HOST || "smtp.gmail.com";
+  const port = Number(process.env.EMAIL_PORT) || 587;
+  const user = process.env.EMAIL_USER;
+  const pass = process.env.EMAIL_PASS;
+
+  // Check if SMTP is configured correctly
+  if (!user || user.includes("your-email") || !pass || pass.includes("your-smtp-app-password")) {
+    console.warn("⚠️ SMTP credentials not set or set to placeholders in .env. Mailer will run in DEV console logging mode.");
+    return null;
+  }
+
+  return nodemailer.createTransport({
+    host,
+    port,
+    secure: port === 465, // True for 465, false for 587
+    auth: {
+      user,
+      pass,
+    },
+  });
+};
+
+const sendMailAsync = async (options) => {
+  const transporter = createTransporter();
+  const fromAddress = process.env.EMAIL_USER || "noreply@quizarena.com";
+
+  if (!transporter) {
+    console.log("=========================================");
+    console.log(`✉️ [DEV MAIL LOG] To: ${options.to}`);
+    console.log(`✉️ Subject: ${options.subject}`);
+    console.log(`✉️ Text Content:\n${options.text}`);
+    console.log("=========================================");
+    return { mock: true, messageId: "mock-id-" + Math.random().toString(36).substr(2, 9) };
+  }
+
+  try {
+    const info = await transporter.sendMail({
+      from: `"QuizArena" <${fromAddress}>`,
+      to: options.to,
+      subject: options.subject,
+      text: options.text,
+      html: options.html,
+    });
+    console.log(`✉️ Email successfully sent to ${options.to}. MessageID: ${info.messageId}`);
+    return info;
+  } catch (error) {
+    console.error(`❌ Failed to send email to ${options.to}:`, error.message);
+    throw error;
+  }
+};
+
+/**
+ * Sends a 6-digit OTP code for password resets.
+ */
+export const sendPasswordResetEmail = async (recipientEmail, name, resetCode) => {
+  const subject = "QuizArena Password Reset OTP Code";
+  const text = `Hello ${name},\n\nYour 6-digit verification code to reset your password is: ${resetCode}\n\nThis code expires in 10 minutes. If you did not request this, please ignore this email.`;
+
+  const html = `
+    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0c0a18; color: #f8fafc; padding: 2rem; border-radius: 12px; max-width: 500px; margin: 0 auto; border: 1px solid #1e1b4b;">
+      <div style="text-align: center; margin-bottom: 2rem;">
+        <h1 style="color: #a855f7; margin: 0; font-size: 24px; font-weight: 800; letter-spacing: 1px;">QuizArena</h1>
+        <p style="color: #64748b; font-size: 14px; margin-top: 5px;">Security Verification</p>
+      </div>
+      <div style="background-color: #110e2e; padding: 1.5rem; border-radius: 8px; border: 1px solid #2e1065; text-align: center;">
+        <p style="font-size: 16px; color: #e2e8f0; margin-top: 0;">Hello <strong>${name}</strong>,</p>
+        <p style="font-size: 14px; color: #94a3b8;">You requested to reset your password. Use the verification code below to authorize this request:</p>
+        <div style="font-size: 32px; font-weight: 800; color: #d946ef; letter-spacing: 6px; margin: 1.5rem 0; padding: 0.5rem; background-color: rgba(217, 70, 239, 0.08); border-radius: 6px; display: inline-block;">
+          ${resetCode}
+        </div>
+        <p style="font-size: 12px; color: #64748b; margin-bottom: 0;">This code is valid for <strong>10 minutes</strong>. If you did not make this request, you can safely ignore this email.</p>
+      </div>
+      <div style="text-align: center; margin-top: 2rem; font-size: 11px; color: #475569;">
+        © 2026 QuizArena. All rights reserved.
+      </div>
+    </div>
+  `;
+
+  return sendMailAsync({ to: recipientEmail, subject, text, html });
+};
+
+/**
+ * Sends a welcome email upon registration.
+ */
+export const sendWelcomeEmail = async (recipientEmail, name) => {
+  const subject = "Welcome to the QuizArena! 🚀";
+  const text = `Hello ${name},\n\nWelcome to QuizArena! You've joined the ultimate quiz arena where you can challenge yourself, track stats, and battle peers in real-time.\n\nLog in now to start your first challenge!`;
+
+  const html = `
+    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0c0a18; color: #f8fafc; padding: 2rem; border-radius: 12px; max-width: 500px; margin: 0 auto; border: 1px solid #1e1b4b;">
+      <div style="text-align: center; margin-bottom: 2rem;">
+        <h1 style="color: #a855f7; margin: 0; font-size: 28px; font-weight: 800; letter-spacing: 1px;">QuizArena</h1>
+        <p style="color: #64748b; font-size: 14px; margin-top: 5px;">Your quiz journey starts here</p>
+      </div>
+      <div style="background-color: #110e2e; padding: 2rem; border-radius: 8px; border: 1px solid #2e1065;">
+        <h2 style="color: #e2e8f0; font-size: 20px; font-weight: 700; margin-top: 0; text-align: center;">Welcome to the Arena, ${name}! 🎉</h2>
+        <p style="font-size: 15px; color: #94a3b8; line-height: 1.6; text-align: center;">
+          You've successfully created your account. Get ready to test your knowledge, master complex Computer Science topics, and compete with aspirants worldwide!
+        </p>
+        <div style="margin: 2rem 0; padding: 1.5rem; background-color: rgba(168, 85, 247, 0.05); border-radius: 8px; border: 1px solid rgba(168, 85, 247, 0.15);">
+          <h3 style="color: #c084fc; font-size: 15px; margin-top: 0;">Here's what you can do right now:</h3>
+          <ul style="color: #e2e8f0; font-size: 13.5px; padding-left: 20px; margin-bottom: 0; line-height: 1.8;">
+            <li>📖 <strong>Practice Quizzes:</strong> Test yourself in Operating Systems, Networks, DBMS, and more.</li>
+            <li>⚔️ <strong>Battle Mode:</strong> Face off in real-time PVP match-ups or practice against TuringBot.</li>
+            <li>🏆 <strong>Leaderboard:</strong> Score points and rank up globally.</li>
+            <li>⚡ <strong>Mastery Charts:</strong> Track your stats and review past mistakes dynamically.</li>
+          </ul>
+        </div>
+        <div style="text-align: center; margin-top: 2rem;">
+          <a href="http://localhost:5173/login" style="background: linear-gradient(135deg, #a855f7 0%, #d946ef 100%); color: white; padding: 0.85rem 2rem; text-decoration: none; border-radius: 6px; font-weight: 700; font-size: 14px; display: inline-block; box-shadow: 0 4px 12px rgba(168, 85, 247, 0.35);">
+            Enter the Arena
+          </a>
+        </div>
+      </div>
+      <div style="text-align: center; margin-top: 2rem; font-size: 11px; color: #475569;">
+        © 2026 QuizArena. All rights reserved.
+      </div>
+    </div>
+  `;
+
+  return sendMailAsync({ to: recipientEmail, subject, text, html });
+};

@@ -5,6 +5,7 @@ import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { generateQuestions } from "../services/quizService.js";
 import { notifyStatsUpdate, broadcastActivity } from "../services/socketService.js";
+import { sendWelcomeEmail, sendPasswordResetEmail } from "../services/mailerService.js";
 
 const buildToken = (userId) =>
   jwt.sign({ id: userId }, process.env.JWT_SECRET || "dev-secret-change-in-production", { expiresIn: "24h" });
@@ -64,6 +65,11 @@ export const register = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = await User.create({ name, email, password: hashedPassword, avatar: 0 });
     const token = buildToken(user._id);
+
+    // Send Welcome Email asynchronously
+    sendWelcomeEmail(user.email, user.name).catch((err) => {
+      console.warn(`⚠️ Welcome email failed to trigger for ${user.email}:`, err.message);
+    });
 
     res.status(201).json({
       message: "User registered successfully",
@@ -476,6 +482,11 @@ export const requestPasswordReset = async (req, res) => {
     user.passwordResetCodeHash = hashResetCode(normalizedEmail, code);
     user.passwordResetCodeExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
     await user.save();
+
+    // Send OTP email asynchronously
+    sendPasswordResetEmail(normalizedEmail, user.name, code).catch((err) => {
+      console.warn(`⚠️ Password reset OTP email failed to trigger for ${normalizedEmail}:`, err.message);
+    });
 
     console.log(`Password reset code for ${normalizedEmail}: ${code}`);
 
