@@ -1566,14 +1566,14 @@ img {
 }
 
 .auth-deco.gradient-accent {
-  background: linear-gradient(135deg, hsla(340, 85%, 60%, 0.16) 0%, hsla(20, 90%, 55%, 0.06) 100%);
+  background: linear-gradient(135deg, hsla(250, 90%, 65%, 0.12) 0%, hsla(230, 25%, 5%, 0.95) 100%);
   border-right: 1px solid var(--border);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
 
 .auth-deco.gradient-primary {
-  background: linear-gradient(135deg, hsla(250, 90%, 65%, 0.16) 0%, hsla(280, 85%, 65%, 0.06) 100%);
+  background: linear-gradient(135deg, hsla(250, 90%, 65%, 0.12) 0%, hsla(230, 25%, 5%, 0.95) 100%);
   border-left: 1px solid var(--border);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -1582,7 +1582,7 @@ img {
 .auth-deco-content {
   max-width: 28rem;
   text-align: center;
-  color: var(--primary-foreground);
+  color: var(--foreground);
   position: relative;
   z-index: 10;
 }
@@ -1591,11 +1591,15 @@ img {
   font-size: 2.5rem;
   font-weight: 700;
   margin-bottom: 1rem;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .auth-deco p {
   font-size: 1.125rem;
-  opacity: 0.9;
+  color: var(--muted-foreground);
   margin-bottom: 2rem;
 }
 
@@ -1665,7 +1669,8 @@ img {
 .auth-deco-orb {
   position: absolute;
   border-radius: 50%;
-  background: hsla(0, 0%, 100%, 0.1);
+  background: radial-gradient(circle, hsla(250, 90%, 65%, 0.18) 0%, transparent 70%);
+  filter: blur(40px);
 }
 
 .password-reqs {
