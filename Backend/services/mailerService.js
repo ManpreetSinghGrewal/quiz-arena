@@ -4,10 +4,10 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const createTransporter = () => {
-  const host = process.env.EMAIL_HOST || "smtp.gmail.com";
-  const port = Number(process.env.EMAIL_PORT) || 587;
   const user = process.env.EMAIL_USER;
   const pass = process.env.EMAIL_PASS;
+  const host = process.env.EMAIL_HOST || "smtp.gmail.com";
+  const port = Number(process.env.EMAIL_PORT) || 465;
 
   // Check if SMTP is configured correctly
   if (!user || user.includes("your-email") || !pass || pass.includes("your-smtp-app-password")) {
@@ -15,16 +15,39 @@ const createTransporter = () => {
     return null;
   }
 
+  // Use dedicated Gmail service configuration if Gmail address is detected
+  if (host.includes("gmail") || user.endsWith("@gmail.com")) {
+    return nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user,
+        pass,
+      },
+    });
+  }
+
   return nodemailer.createTransport({
     host,
     port,
-    secure: port === 465, // True for 465, false for 587
+    secure: port === 465,
     auth: {
       user,
       pass,
     },
   });
 };
+
+// Verify connection on startup
+const startupTransporter = createTransporter();
+if (startupTransporter) {
+  startupTransporter.verify((error) => {
+    if (error) {
+      console.error("❌ SMTP Connection verification failed:", error.message);
+    } else {
+      console.log(`✅ SMTP Server is ready to send emails via ${process.env.EMAIL_USER}`);
+    }
+  });
+}
 
 const sendMailAsync = async (options) => {
   const transporter = createTransporter();
