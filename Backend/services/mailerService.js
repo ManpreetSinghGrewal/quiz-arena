@@ -126,3 +126,33 @@ export const sendWelcomeEmail = async (recipientEmail, name) => {
 
   return sendMailAsync({ to: recipientEmail, subject, text, html });
 };
+
+/**
+ * Sends a 6-digit OTP code for sign up email verification.
+ */
+export const sendVerificationEmail = async (recipientEmail, name, verificationCode) => {
+  const subject = "QuizArena Registration Verification OTP Code";
+  const text = `Hello ${name},\n\nWelcome to QuizArena! Your 6-digit verification code to activate your account is: ${verificationCode}\n\nThis code expires in 15 minutes.`;
+
+  const html = `
+    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0c0a18; color: #f8fafc; padding: 2rem; border-radius: 12px; max-width: 500px; margin: 0 auto; border: 1px solid #1e1b4b;">
+      <div style="text-align: center; margin-bottom: 2rem;">
+        <h1 style="color: #a855f7; margin: 0; font-size: 24px; font-weight: 800; letter-spacing: 1px;">QuizArena</h1>
+        <p style="color: #64748b; font-size: 14px; margin-top: 5px;">Registration Activation</p>
+      </div>
+      <div style="background-color: #110e2e; padding: 1.5rem; border-radius: 8px; border: 1px solid #2e1065; text-align: center;">
+        <p style="font-size: 16px; color: #e2e8f0; margin-top: 0;">Welcome, <strong>${name}</strong>!</p>
+        <p style="font-size: 14px; color: #94a3b8;">Use the verification OTP code below to activate your account and start your quiz journey:</p>
+        <div style="font-size: 32px; font-weight: 800; color: #3b82f6; letter-spacing: 6px; margin: 1.5rem 0; padding: 0.5rem; background-color: rgba(59, 130, 246, 0.08); border-radius: 6px; display: inline-block;">
+          ${verificationCode}
+        </div>
+        <p style="font-size: 12px; color: #64748b; margin-bottom: 0;">This OTP code is valid for <strong>15 minutes</strong>. Enter this code on the verification screen to activate your account.</p>
+      </div>
+      <div style="text-align: center; margin-top: 2rem; font-size: 11px; color: #475569;">
+        © 2026 QuizArena. All rights reserved.
+      </div>
+    </div>
+  `;
+
+  return sendMailAsync({ to: recipientEmail, subject, text, html });
+};

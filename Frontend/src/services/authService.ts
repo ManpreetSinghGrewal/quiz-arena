@@ -69,3 +69,21 @@ export const resetPasswordWithCode = async (
   });
   return parseResponse(res);
 };
+
+export const verifyEmailOtp = async (email: string, code: string) => {
+  const res = await fetch(`${getAuthUrl()}/verify-email`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, code }),
+  });
+  return parseResponse(res);
+};
+
+export const resendVerificationOtp = async (email: string) => {
+  const res = await fetch(`${getAuthUrl()}/resend-verification`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+  return parseResponse(res);
+};

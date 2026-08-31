@@ -5,7 +5,7 @@ import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { generateQuestions } from "../services/quizService.js";
 import { notifyStatsUpdate, broadcastActivity } from "../services/socketService.js";
-import { sendWelcomeEmail, sendPasswordResetEmail } from "../services/mailerService.js";
+import { sendWelcomeEmail, sendPasswordResetEmail, sendVerificationEmail } from "../services/mailerService.js";
 
 const buildToken = (userId) =>
   jwt.sign({ id: userId }, process.env.JWT_SECRET || "dev-secret-change-in-production", { expiresIn: "24h" });
@@ -63,21 +63,125 @@ export const register = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = await User.create({ name, email, password: hashedPassword, avatar: 0 });
-    const token = buildToken(user._id);
+    
+    // Generate a 6-digit registration verification OTP code
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    const verificationCodeHash = hashResetCode(email, code);
+    const verificationCodeExpiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
 
-    // Send Welcome Email asynchronously
+    const user = await User.create({ 
+      name, 
+      email, 
+      password: hashedPassword, 
+      avatar: 0,
+      isVerified: false,
+      verificationCodeHash,
+      verificationCodeExpiresAt
+    });
+
+    // Send Verification Email asynchronously
+    sendVerificationEmail(user.email, user.name, code).catch((err) => {
+      console.warn(`⚠️ Verification email failed to trigger for ${user.email}:`, err.message);
+    });
+
+    const response = {
+      message: "Registration successful. Please verify your email with the OTP sent to your inbox.",
+      email: user.email,
+      requiresVerification: true
+    };
+    if (process.env.NODE_ENV !== "production") {
+      response.verificationCode = code;
+    }
+    
+    res.status(201).json(response);
+  } catch (error) {
+    console.error("REGISTER ERROR:", error);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+
+export const verifyEmail = async (req, res) => {
+  try {
+    const { email, code } = req.body;
+    if (!email || !code) {
+      return res.status(400).json({ message: "Email and OTP code are required" });
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+    const user = await User.findOne({ email: normalizedEmail });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (user.isVerified) {
+      return res.status(400).json({ message: "Email is already verified" });
+    }
+
+    const expectedHash = hashResetCode(normalizedEmail, code);
+    if (user.verificationCodeHash !== expectedHash || new Date() > user.verificationCodeExpiresAt) {
+      return res.status(400).json({ message: "Invalid or expired verification code" });
+    }
+
+    // Clear verification codes and mark as verified
+    user.isVerified = true;
+    user.verificationCodeHash = null;
+    user.verificationCodeExpiresAt = null;
+    await user.save();
+
+    // Trigger welcome email asynchronously
     sendWelcomeEmail(user.email, user.name).catch((err) => {
       console.warn(`⚠️ Welcome email failed to trigger for ${user.email}:`, err.message);
     });
 
-    res.status(201).json({
-      message: "User registered successfully",
+    const token = buildToken(user._id);
+
+    res.json({
+      message: "Email verified successfully!",
       token,
       user: buildUserPayload(user),
     });
   } catch (error) {
-    console.error("REGISTER ERROR:", error);
+    console.error("VERIFY EMAIL ERROR:", error);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+
+export const resendVerificationOtp = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+    const user = await User.findOne({ email: normalizedEmail });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (user.isVerified) {
+      return res.status(400).json({ message: "Email is already verified" });
+    }
+
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    user.verificationCodeHash = hashResetCode(normalizedEmail, code);
+    user.verificationCodeExpiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+    await user.save();
+
+    // Send Verification Email
+    sendVerificationEmail(user.email, user.name, code).catch((err) => {
+      console.warn(`⚠️ Failed to resend verification OTP to ${user.email}:`, err.message);
+    });
+
+    const response = { message: "Verification OTP code resent successfully." };
+    if (process.env.NODE_ENV !== "production") {
+      response.verificationCode = code;
+    }
+    res.json(response);
+  } catch (error) {
+    console.error("RESEND VERIFICATION OTP ERROR:", error);
     res.status(500).json({ message: "Server Error" });
   }
 };
@@ -102,6 +206,32 @@ export const login = async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ message: "Invalid credentials" });
+    }
+
+    // Check if email is verified
+    if (!user.isVerified) {
+      // Automatically send a fresh OTP if they don't have a valid active one
+      let code = "";
+      if (!user.verificationCodeHash || new Date() > user.verificationCodeExpiresAt) {
+        code = String(Math.floor(100000 + Math.random() * 900000));
+        user.verificationCodeHash = hashResetCode(user.email, code);
+        user.verificationCodeExpiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
+        await user.save();
+
+        sendVerificationEmail(user.email, user.name, code).catch((err) => {
+          console.warn(`⚠️ Verification email failed for unverified login user ${user.email}:`, err.message);
+        });
+      }
+
+      const response = {
+        message: "Please verify your email address. An OTP has been sent to your inbox.",
+        email: user.email,
+        requiresVerification: true,
+      };
+      if (code && process.env.NODE_ENV !== "production") {
+        response.verificationCode = code;
+      }
+      return res.status(403).json(response);
     }
 
     const token = buildToken(user._id);

@@ -33,13 +33,14 @@ const handleSubmit = async (e) => {
       return;
     }
 
-    if (response.token && response.user) {
+    setSuccess(true);
+    if (response.requiresVerification) {
+      setTimeout(() => navigate(`/verify-email?email=${encodeURIComponent(formData.email)}`), 1200);
+    } else if (response.token && response.user) {
       login(response.user, response.token);
-      setSuccess(true);
-      setTimeout(() => navigate("/dashboard"), 1500);
+      setTimeout(() => navigate("/dashboard"), 1200);
     } else {
-      setSuccess(true);
-      setTimeout(() => navigate("/login"), 2000);
+      setTimeout(() => navigate("/login"), 1500);
     }
   } catch (err) {
     setError("Cannot connect to server. Make sure the backend is running on port 8085.");

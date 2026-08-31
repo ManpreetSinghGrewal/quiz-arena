@@ -31,6 +31,8 @@ const handleSubmit = async (e) => {
     if (response.ok && response.token) {
       login(response.user, response.token);
       navigate("/dashboard");
+    } else if (response.requiresVerification) {
+      navigate(`/verify-email?email=${encodeURIComponent(email)}`);
     } else {
       setError(response.message || "Login failed");
     }

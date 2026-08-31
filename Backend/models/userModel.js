@@ -69,6 +69,18 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+    verificationCodeHash: {
+      type: String,
+      default: null,
+    },
+    verificationCodeExpiresAt: {
+      type: Date,
+      default: null,
+    },
     badges: {
       type: [String],
       default: [],
