@@ -51,6 +51,8 @@ const handleSubmit = async (e) => {
 
   return (
     <div className="page-split">
+      <AnimatedBackground variant="mesh" />
+
       <div className="auth-deco gradient-accent">
         <div className="auth-deco-orb animate-float" style={{ top: "5rem", right: "2.5rem", width: "6rem", height: "6rem" }} />
         <div className="auth-deco-orb animate-float-delayed" style={{ bottom: "5rem", left: "2.5rem", width: "8rem", height: "8rem", background: "hsla(0, 0%, 100%, 0.05)" }} />
@@ -73,9 +75,8 @@ const handleSubmit = async (e) => {
           </div>
         </div>
       </div>
-
+ 
       <div className="auth-panel">
-        <AnimatedBackground variant="mesh" />
         <div className="auth-form-wrapper animate-fade-in">
           <div className="auth-logo">
             <Link to="/">

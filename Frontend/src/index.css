@@ -1562,6 +1562,21 @@ img {
   padding: 3rem;
   position: relative;
   overflow: hidden;
+  z-index: 10;
+}
+
+.auth-deco.gradient-accent {
+  background: linear-gradient(135deg, hsla(340, 85%, 60%, 0.16) 0%, hsla(20, 90%, 55%, 0.06) 100%);
+  border-right: 1px solid var(--border);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.auth-deco.gradient-primary {
+  background: linear-gradient(135deg, hsla(250, 90%, 65%, 0.16) 0%, hsla(280, 85%, 65%, 0.06) 100%);
+  border-left: 1px solid var(--border);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 .auth-deco-content {
