@@ -50,7 +50,45 @@ if (startupTransporter) {
 }
 
 const sendMailAsync = async (options) => {
-  // 1. Primary: Use Resend HTTPS API (bypasses Render/Cloud SMTP port blocks)
+  // 1. Primary: Use Brevo HTTPS API (Universal delivery to ANY email without custom domain required)
+  const brevoApiKey = process.env.BREVO_API_KEY?.trim();
+  if (brevoApiKey && !brevoApiKey.includes("your-brevo-api-key")) {
+    try {
+      const senderEmail = process.env.EMAIL_USER || "manpreetsgrewal5911@gmail.com";
+      const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+        method: "POST",
+        headers: {
+          "api-key": brevoApiKey,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          sender: {
+            name: "QuizArena",
+            email: senderEmail,
+          },
+          to: [
+            {
+              email: options.to,
+            },
+          ],
+          subject: options.subject,
+          textContent: options.text,
+          htmlContent: options.html,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || `Brevo Error: ${res.statusText}`);
+      }
+      console.log(`✉️ [Brevo HTTPS] Email successfully sent to ${options.to}. MessageID: ${data.messageId}`);
+      return { messageId: data.messageId, brevo: true };
+    } catch (brevoError) {
+      console.warn(`⚠️ Brevo dispatch failed for ${options.to}, attempting fallbacks:`, brevoError.message);
+    }
+  }
+
+  // 2. Secondary: Use Resend HTTPS API (bypasses Render/Cloud SMTP port blocks)
   const resendApiKey = process.env.RESEND_API_KEY?.trim();
   if (resendApiKey && !resendApiKey.includes("your-resend-api-key")) {
     try {
@@ -81,7 +119,7 @@ const sendMailAsync = async (options) => {
     }
   }
 
-  // 2. Fallback: Use Nodemailer SMTP
+  // 3. Fallback: Use Nodemailer SMTP
   const transporter = createTransporter();
   const fromAddress = process.env.EMAIL_USER || "noreply@quizarena.com";
 
