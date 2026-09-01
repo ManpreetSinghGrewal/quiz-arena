@@ -50,6 +50,38 @@ if (startupTransporter) {
 }
 
 const sendMailAsync = async (options) => {
+  // 1. Primary: Use Resend HTTPS API (bypasses Render/Cloud SMTP port blocks)
+  const resendApiKey = process.env.RESEND_API_KEY?.trim();
+  if (resendApiKey && !resendApiKey.includes("your-resend-api-key")) {
+    try {
+      const from = process.env.RESEND_FROM || "QuizArena <onboarding@resend.dev>";
+      const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${resendApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from,
+          to: [options.to],
+          subject: options.subject,
+          text: options.text,
+          html: options.html,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || `Resend Error: ${res.statusText}`);
+      }
+      console.log(`✉️ [Resend HTTPS] Email successfully sent to ${options.to}. ID: ${data.id}`);
+      return { messageId: data.id, resend: true };
+    } catch (resendError) {
+      console.warn(`⚠️ Resend dispatch failed for ${options.to}, falling back to SMTP:`, resendError.message);
+    }
+  }
+
+  // 2. Fallback: Use Nodemailer SMTP
   const transporter = createTransporter();
   const fromAddress = process.env.EMAIL_USER || "noreply@quizarena.com";
 
