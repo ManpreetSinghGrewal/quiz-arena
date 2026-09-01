@@ -15,6 +15,7 @@ import {
   getMistakesQuestions,
   verifyEmail,
   resendVerificationOtp,
+  testMailEndpoint,
 } from '../controllers/authController.js';
 import authMiddleware from '../middlewares/authMiddleware.js';
 import requireDb from "../middlewares/requireDb.js";
@@ -23,6 +24,7 @@ import { authLimiter, quizQuestionsLimiter } from '../middlewares/rateLimiter.js
 
 const router = express.Router();
 
+router.get('/test-mail', testMailEndpoint);
 router.post('/register', requireDb, authLimiter, register);
 router.post('/login', requireDb, authLimiter, login);
 router.post('/verify-email', requireDb, verifyEmail);

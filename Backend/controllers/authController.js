@@ -79,10 +79,12 @@ export const register = async (req, res) => {
       verificationCodeExpiresAt
     });
 
-    // Send Verification Email asynchronously
-    sendVerificationEmail(user.email, user.name, code).catch((err) => {
-      console.warn(`⚠️ Verification email failed to trigger for ${user.email}:`, err.message);
-    });
+    // Send Verification Email
+    try {
+      await sendVerificationEmail(user.email, user.name, code);
+    } catch (mailErr) {
+      console.error(`❌ Verification email failed for ${user.email}:`, mailErr.message);
+    }
 
     const response = {
       message: "Registration successful. Please verify your email with the OTP sent to your inbox.",
@@ -129,10 +131,12 @@ export const verifyEmail = async (req, res) => {
     user.verificationCodeExpiresAt = null;
     await user.save();
 
-    // Trigger welcome email asynchronously
-    sendWelcomeEmail(user.email, user.name).catch((err) => {
-      console.warn(`⚠️ Welcome email failed to trigger for ${user.email}:`, err.message);
-    });
+    // Trigger welcome email
+    try {
+      await sendWelcomeEmail(user.email, user.name);
+    } catch (mailErr) {
+      console.error(`❌ Welcome email failed for ${user.email}:`, mailErr.message);
+    }
 
     const token = buildToken(user._id);
 
@@ -171,9 +175,11 @@ export const resendVerificationOtp = async (req, res) => {
     await user.save();
 
     // Send Verification Email
-    sendVerificationEmail(user.email, user.name, code).catch((err) => {
-      console.warn(`⚠️ Failed to resend verification OTP to ${user.email}:`, err.message);
-    });
+    try {
+      await sendVerificationEmail(user.email, user.name, code);
+    } catch (mailErr) {
+      console.error(`❌ Failed to resend verification OTP for ${user.email}:`, mailErr.message);
+    }
 
     const response = { message: "Verification OTP code resent successfully." };
     if (process.env.NODE_ENV !== "production") {
@@ -218,9 +224,11 @@ export const login = async (req, res) => {
         user.verificationCodeExpiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
         await user.save();
 
-        sendVerificationEmail(user.email, user.name, code).catch((err) => {
-          console.warn(`⚠️ Verification email failed for unverified login user ${user.email}:`, err.message);
-        });
+        try {
+          await sendVerificationEmail(user.email, user.name, code);
+        } catch (mailErr) {
+          console.error(`❌ Verification email failed on login for ${user.email}:`, mailErr.message);
+        }
       }
 
       const response = {
@@ -613,10 +621,12 @@ export const requestPasswordReset = async (req, res) => {
     user.passwordResetCodeExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
     await user.save();
 
-    // Send OTP email asynchronously
-    sendPasswordResetEmail(normalizedEmail, user.name, code).catch((err) => {
-      console.warn(`⚠️ Password reset OTP email failed to trigger for ${normalizedEmail}:`, err.message);
-    });
+    // Send OTP email
+    try {
+      await sendPasswordResetEmail(normalizedEmail, user.name, code);
+    } catch (mailErr) {
+      console.error(`❌ Password reset OTP email failed for ${normalizedEmail}:`, mailErr.message);
+    }
 
     console.log(`Password reset code for ${normalizedEmail}: ${code}`);
 
@@ -732,5 +742,19 @@ export const getMistakesQuestions = async (req, res) => {
   } catch (error) {
     console.error("GET MISTAKES ERROR:", error);
     res.status(500).json({ message: "Server Error" });
+  }
+};
+
+export const testMailEndpoint = async (req, res) => {
+  try {
+    const to = req.query.to || process.env.EMAIL_USER;
+    if (!to) {
+      return res.status(400).json({ success: false, message: "Recipient email (?to=...) required" });
+    }
+    const info = await sendVerificationEmail(to, "Diagnostics User", "123456");
+    res.json({ success: true, message: `Email dispatched successfully to ${to}`, info });
+  } catch (error) {
+    console.error("TEST MAIL ENDPOINT ERROR:", error);
+    res.status(500).json({ success: false, error: error.message, code: error.code });
   }
 };
